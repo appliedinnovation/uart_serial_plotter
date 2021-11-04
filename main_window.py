@@ -93,6 +93,13 @@ class MainWindow(QMainWindow):
         self.refreshAction.setStatusTip("Refresh Serial Port List")
         self.refreshAction.triggered.connect(self.__refresh_ports__)
 
+        self.resetViewAction = Action(
+            resource.path("icons/toolbar/reset.png"), "Reset View", self
+        )
+        self.resetViewAction.setShortcut("Ctrl+]")
+        self.resetViewAction.setStatusTip("Reset View")
+        self.resetViewAction.triggered.connect(self.__reset_view__)
+
     def __init_menubar__(self):
         self.menubar_init()
         self.menubar_add_menu("&File")
@@ -113,6 +120,9 @@ class MainWindow(QMainWindow):
         self.toolbar_add_action("toolbar1", self.refreshAction)
         self.toolbar_add_widget("toolbar1", QLabel(" Serial Port: "))
         self.toolbar_add_widget("toolbar1", self.port_selector)
+        self.toolbar_add_separator("toolbar1")
+        self.toolbar_add_action("toolbar1", self.refreshAction)
+        self.toolbar_add_action("toolbar1", self.resetViewAction)
 
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
@@ -129,6 +139,9 @@ class MainWindow(QMainWindow):
             self.port_selector.setCurrentIndex(self.serial_ports.index(self.port))
         else:
             self.port_selector.setCurrentIndex(-1)
+
+    def __reset_view__(self):
+        self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
 
     # window functions
     def center(self):
