@@ -69,10 +69,10 @@ class MainWindow(QMainWindow):
         self.__init_menubar__()
         self.__init_toolbar__()
 
-        self.startPage = pages.StartPage()
+        self.plot_page = pages.PlotPage()
 
         # main controls
-        self.setCentralWidget(self.startPage)
+        self.setCentralWidget(self.plot_page)
         self.setGeometry(0, 0, 1200, 1000)
         self.center()
         self.show()

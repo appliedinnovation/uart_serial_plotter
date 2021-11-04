@@ -15,6 +15,7 @@ from PyQt5.QtCore import pyqtSignal, pyqtSlot, QSize, Qt
 import resource
 import pyqtgraph as pg
 import numpy as np
+from plot import Plot
 
 # from progress import ProgressBar
 
@@ -71,21 +72,13 @@ class BasePage(QWidget):
             self.layout.insertWidget(i, self.picture)
 
 
-class StartPage(BasePage):
+class PlotPage(BasePage):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.previousEnabled = False
 
-        x = np.arange(1000)
-        y = np.random.normal(size=(3, 1000))
-        self.graphWidget = pg.PlotWidget()
-
-        self.layout.addWidget(self.graphWidget)
-
-        for i in range(3):
-            self.graphWidget.plot(
-                x, y[i], pen=(i, 3)
-            )  ## setting pen=(i,3) automaticaly creates three different-colored pens
+        self.plot = Plot()
+        self.layout.addWidget(self.plot.canvas)
 
     @pyqtSlot()
     def onEnter(self):

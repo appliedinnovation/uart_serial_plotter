@@ -1,6 +1,14 @@
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import (QWidget, QPushButton, QVBoxLayout, QVBoxLayout, QHBoxLayout, QStackedWidget)
+from PyQt5.QtWidgets import (
+    QWidget,
+    QPushButton,
+    QVBoxLayout,
+    QVBoxLayout,
+    QHBoxLayout,
+    QStackedWidget,
+)
 from PyQt5.QtCore import pyqtSignal, pyqtSlot
+
 
 class Pager(QWidget):
     finished = pyqtSignal()
@@ -72,7 +80,7 @@ class Pager(QWidget):
         self.disableControls()
 
         index = self.stack.currentIndex()
-        top = self.stack.count() -1
+        top = self.stack.count() - 1
         bottom = 0
 
         self.enableNext()
