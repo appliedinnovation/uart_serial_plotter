@@ -13,6 +13,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QSize, Qt
 
 import resource
+import pyqtgraph as pg
+import numpy as np
 
 # from progress import ProgressBar
 
@@ -74,23 +76,16 @@ class StartPage(BasePage):
         super().__init__(parent=parent)
         self.previousEnabled = False
 
-        # self.pixMap = QtGui.QPixmap(resource.path("images/cable.jpg"))
+        x = np.arange(1000)
+        y = np.random.normal(size=(3, 1000))
+        self.graphWidget = pg.PlotWidget()
 
-        title = QLabel("Welcome to SmartDrive MX2+ Programming")
-        cableLabel = QLabel(
-            "Plug in the programming cables to the SmartDrive as shown below.\nMake sure the SmartDrive is OFF.\nRefer to the 'Help' menu for BLE setup instructions."
-        )
-        cableLabel.setWordWrap(True)
-        self.labels = [title, cableLabel]
+        self.layout.addWidget(self.graphWidget)
 
-        # self.picture = QLabel(self)
-        # self.picture.setPixmap(
-        #     self.pixMap.scaled(self.getPictureSize(), Qt.KeepAspectRatio)
-        # )
-
-        self.layout.addWidget(title)
-        self.layout.addWidget(cableLabel)
-        self.layout.addWidget(self.picture)
+        for i in range(3):
+            self.graphWidget.plot(
+                x, y[i], pen=(i, 3)
+            )  ## setting pen=(i,3) automaticaly creates three different-colored pens
 
     @pyqtSlot()
     def onEnter(self):

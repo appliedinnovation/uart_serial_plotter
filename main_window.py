@@ -36,6 +36,7 @@ from action import Action
 import resource
 import pages
 from list_serial_ports import list_serial_ports
+from pager import Pager
 
 
 class MainWindow(QMainWindow):
@@ -63,56 +64,60 @@ class MainWindow(QMainWindow):
         self.setStyleSheet("QLabel {font: 15pt} QPushButton {font: 15pt}")
         self.setWindowTitle("UART Serial Plotter")
 
-        # Create the actions for the program
-        exitAction = Action(
-            resource.path("icons/toolbar/exit.png"), "Exit Plotter", self
-        )
-        exitAction.setShortcut("Ctrl+Q")
-        exitAction.setStatusTip("Exit application")
-        exitAction.triggered.connect(self.close)
-
-        refreshAction = Action(
-            resource.path("icons/toolbar/refresh.png"), "Refresh Serial Ports", self
-        )
-        refreshAction.setShortcut("Ctrl+R")
-        refreshAction.setStatusTip("Refresh Serial Port List")
-        refreshAction.triggered.connect(self.refresh_ports)
-
-        # Create the widgets for the program (embeddable in the
-        # toolbar or elsewhere)
-        self.port_selector = QComboBox(self)
-        self.refresh_ports()
-        self.port_selector.activated[str].connect(self.change_port)
-
-        # Set up the Menus for the program
-        self.menubar_init()
-        self.menubar_add_menu("&File")
-        self.menu_add_action("&File", exitAction)
-
-        # Set up the toolbars for the program
-        self.toolbar_init()
-        self.toolbar_create("toolbar1")
-        self.toolbar_add_action("toolbar1", exitAction)
-
-        self.toolbar_add_separator("toolbar1")
-        self.toolbar_add_action("toolbar1", refreshAction)
-        self.toolbar_add_widget("toolbar1", QLabel(" Serial Port: "))
-        self.toolbar_add_widget("toolbar1", self.port_selector)
+        self.__init_actions__()
+        self.__init_port_selector_combo_box__()
+        self.__init_menubar__()
+        self.__init_toolbar__()
 
         self.startPage = pages.StartPage()
 
         # main controls
-        # self.setCentralWidget(self.pager)
+        self.setCentralWidget(self.startPage)
         self.setGeometry(0, 0, 1200, 1000)
         self.center()
         self.show()
 
-    def change_port(self, newPort):
+    def __init_actions__(self):
+        self.exitAction = Action(
+            resource.path("icons/toolbar/exit.png"), "Exit Plotter", self
+        )
+        self.exitAction.setShortcut("Ctrl+Q")
+        self.exitAction.setStatusTip("Exit application")
+        self.exitAction.triggered.connect(self.close)
+
+        self.refreshAction = Action(
+            resource.path("icons/toolbar/refresh.png"), "Refresh Serial Ports", self
+        )
+        self.refreshAction.setShortcut("Ctrl+R")
+        self.refreshAction.setStatusTip("Refresh Serial Port List")
+        self.refreshAction.triggered.connect(self.__refresh_ports__)
+
+    def __init_menubar__(self):
+        self.menubar_init()
+        self.menubar_add_menu("&File")
+        self.menu_add_action("&File", self.exitAction)
+        self.menu_add_action("&File", self.refreshAction)
+
+    def __init_port_selector_combo_box__(self):
+        self.port_selector = QComboBox(self)
+        self.__refresh_ports__()
+        self.port_selector.activated[str].connect(self.__on_port_changed__)
+
+    def __init_toolbar__(self):
+        self.toolbar_init()
+        self.toolbar_create("toolbar1")
+        self.toolbar_add_action("toolbar1", self.exitAction)
+
+        self.toolbar_add_separator("toolbar1")
+        self.toolbar_add_action("toolbar1", self.refreshAction)
+        self.toolbar_add_widget("toolbar1", QLabel(" Serial Port: "))
+        self.toolbar_add_widget("toolbar1", self.port_selector)
+
+    def __on_port_changed__(self, newPort):
         if newPort != self.port:
             self.port = newPort
 
-    # Functions for serial port control
-    def refresh_ports(self):
+    def __refresh_ports__(self):
         self.serial_ports = list_serial_ports()
         self.port_selector.clear()
         self.port_selector.addItems(self.serial_ports)
@@ -129,18 +134,3 @@ class MainWindow(QMainWindow):
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
-
-    def close_event(self, event):
-        reply = QMessageBox.question(
-            self,
-            "Quit",
-            "Sure you want to quit?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No,
-        )
-
-        if reply == QMessageBox.Yes:
-            self.stop()
-            event.accept()
-        else:
-            event.ignore()
