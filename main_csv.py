@@ -36,12 +36,9 @@ def main():
     def update():
         global reader
         global window
-        row = next(reader)
-        window.plot_page.plot.update_data([[float(x) for x in row]])
+        window.plot_page.plot.update_data([[float(x) for x in row] for row in reader])
 
-    timer = QtCore.QTimer(timerType=0) # Qt.PreciseTimer
-    timer.timeout.connect(update)
-    timer.start(20)
+    update()
     sys.exit(app.exec_())
 
 

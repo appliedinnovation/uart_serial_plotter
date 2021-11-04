@@ -10,8 +10,8 @@ class Plot(object):
         self.data = dict()
         self.trace_names = []
         self.canvas = pg.PlotWidget()
-        self.canvas.setAntialiasing(False)
-        self.canvas.setOptimizationFlag(QGraphicsView.DontAdjustForAntialiasing)
+        self.plot = None
+        self.canvas.showGrid(x=True, y=True)
         self.plot_item = self.canvas.getPlotItem()
 
         if header:
@@ -23,10 +23,13 @@ class Plot(object):
 
     def set_header(self, header_names):
         self.trace_names = header_names
+        for i, name in enumerate(self.trace_names):
+            if name in self.traces:
+                pass
+            else:
+                self.traces[name] = self.canvas.plot(pen=(i, len(self.trace_names)), name=name)
 
     def update_data(self, data):
-        self.legend.clear()
-
         for name in self.trace_names:
             # initialize the data for this trace
             if name not in self.data:
@@ -40,12 +43,11 @@ class Plot(object):
                 self.data[self.trace_names[i]]["y"].append(row[i])
 
         # now actually plot the data
-        for i, name in enumerate(self.trace_names):
-            self.plot_item.addItem(
-                pg.PlotDataItem(
-                    self.data[name]["x"],
-                    self.data[name]["y"],
-                    pen=(i, len(self.trace_names)),
-                    name=name,
-                )
-            )
+        for i, name in enumerate(self.trace_names[1:]):
+            self.set_plotdata(name, self.data[name]["x"], self.data[name]["y"])
+
+    def set_plotdata(self, name, data_x, data_y):
+        if name in self.traces:
+            self.traces[name].setData(data_x, data_y)
+        else:
+            self.traces[name] = self.canvas.plot(pen=(len(self.trace_names), len(self.trace_names)), name=name)
