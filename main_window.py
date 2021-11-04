@@ -114,6 +114,8 @@ class MainWindow(QMainWindow):
         self.menubar_add_menu("&File")
         self.menu_add_action("&File", self.exitAction)
         self.menu_add_action("&File", self.refreshAction)
+        self.menu_add_action("&File", self.resetViewAction)
+        self.menu_add_action("&File", self.exportSceneAction)
 
     def __init_port_selector_combo_box__(self):
         self.port_selector = QComboBox(self)
