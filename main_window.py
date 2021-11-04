@@ -42,6 +42,15 @@ class MainWindow(QMainWindow):
 
     from menubar import menubar_init, menubar_add_menu, menu_add_action
 
+    from toolbar import (
+        toolbar_init,
+        toolbar_create,
+        toolbar_add_action,
+        toolbar_add_widget,
+        toolbar_add_separator,
+        toolbar_remove,
+    )
+
     def __init__(self):
         super().__init__()
 
@@ -62,6 +71,13 @@ class MainWindow(QMainWindow):
         exitAction.setStatusTip("Exit application")
         exitAction.triggered.connect(self.close)
 
+        refreshAction = Action(
+            resource.path("icons/toolbar/refresh.png"), "Refresh Serial Ports", self
+        )
+        refreshAction.setShortcut("Ctrl+R")
+        refreshAction.setStatusTip("Refresh Serial Port List")
+        refreshAction.triggered.connect(self.refresh_ports)
+
         # Create the widgets for the program (embeddable in the
         # toolbar or elsewhere)
         self.port_selector = QComboBox(self)
@@ -72,6 +88,16 @@ class MainWindow(QMainWindow):
         self.menubar_init()
         self.menubar_add_menu("&File")
         self.menu_add_action("&File", exitAction)
+
+        # Set up the toolbars for the program
+        self.toolbar_init()
+        self.toolbar_create("toolbar1")
+        self.toolbar_add_action("toolbar1", exitAction)
+
+        self.toolbar_add_separator("toolbar1")
+        self.toolbar_add_action("toolbar1", refreshAction)
+        self.toolbar_add_widget("toolbar1", QLabel(" Serial Port: "))
+        self.toolbar_add_widget("toolbar1", self.port_selector)
 
         self.startPage = pages.StartPage()
 
