@@ -28,6 +28,11 @@ parser = argparse.ArgumentParser(
     description="Plot CSV-formatted timeseries data received from UART"
 )
 parser.add_argument("baudrate", type=int, help="UART baudrate")
+parser.add_argument("header", \
+    nargs="?", 
+    default="Time,Duty_cycle,Velocity_current,Acceleration_current,Brake_enabled,Motor1_ADC_Voltage_mV,Load_ADC_Voltage_mV",
+    type=str, 
+    help="Header for CSV-formatted timeseries data")
 args = parser.parse_args()
 
 serial_port = None
@@ -47,6 +52,7 @@ def on_port_changed_callback(port):
 window = MainWindow(on_port_changed_callback)
 serial_port = serial.Serial(window.port, BAUD_RATE)
 
+window.plot_page.plot.set_header([c for c in args.header.split(",")])
 
 def main():
     def update():
@@ -68,7 +74,9 @@ def main():
             strdata = strdata.decode("utf-8", "backslashreplace")
 
         strdata = escape_ansi(strdata)
+        strdata = strdata.strip()
         arrdata = strdata.split(",")
+        print(arrdata)
 
         # return if there was not a comma
         if len(arrdata) < 5:
@@ -86,7 +94,8 @@ def main():
             window.plot_page.plot.set_header(arrdata)
         else:
             # an array of numbers
-            window.plot_page.plot.update_data([[float(x) for x in arrdata]])
+            datapoint = [float(x.strip()) for x in arrdata]
+            window.plot_page.plot.update_data([datapoint])
 
     timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
     timer.timeout.connect(update)

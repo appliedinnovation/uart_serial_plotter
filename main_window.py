@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
         self.port_selector.clear()
         self.port_selector.addItems(self.serial_ports)
         if self.port is None and len(self.serial_ports):
-            self.port = self.serial_ports[0]
+            self.port = self.serial_ports[-1]
         if self.port is not None and len(self.serial_ports):
             self.port_selector.setCurrentIndex(self.serial_ports.index(self.port))
         else:
