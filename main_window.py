@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         toolbar_remove,
     )
 
-    def __init__(self, on_port_changed_callback):
+    def __init__(self, on_port_changed_callback=None):
         super().__init__()
 
         self.port = None
