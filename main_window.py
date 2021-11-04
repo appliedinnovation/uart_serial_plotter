@@ -32,6 +32,8 @@ from PyQt5.QtCore import (
     pyqtSignal,
 )
 
+from pyqtgraph.GraphicsScene import exportDialog
+
 from action import Action
 import resource
 import pages
@@ -100,6 +102,13 @@ class MainWindow(QMainWindow):
         self.resetViewAction.setStatusTip("Reset View")
         self.resetViewAction.triggered.connect(self.__reset_view__)
 
+        self.exportSceneAction = Action(
+            resource.path("icons/toolbar/export.png"), "Export scene", self
+        )
+        self.exportSceneAction.setShortcut("Ctrl+S")
+        self.exportSceneAction.setStatusTip("Export scene")
+        self.exportSceneAction.triggered.connect(self.__export_scene__)
+
     def __init_menubar__(self):
         self.menubar_init()
         self.menubar_add_menu("&File")
@@ -120,9 +129,12 @@ class MainWindow(QMainWindow):
         self.toolbar_add_action("toolbar1", self.refreshAction)
         self.toolbar_add_widget("toolbar1", QLabel(" Serial Port: "))
         self.toolbar_add_widget("toolbar1", self.port_selector)
+
         self.toolbar_add_separator("toolbar1")
-        self.toolbar_add_action("toolbar1", self.refreshAction)
         self.toolbar_add_action("toolbar1", self.resetViewAction)
+
+        self.toolbar_add_separator("toolbar1")
+        self.toolbar_add_action("toolbar1", self.exportSceneAction)
 
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
@@ -142,6 +154,10 @@ class MainWindow(QMainWindow):
 
     def __reset_view__(self):
         self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
+
+    def __export_scene__(self):
+        e = exportDialog.ExportDialog(self.plot_page.plot.canvas.plotItem.scene())
+        e.show(self.plot_page.plot.canvas.plotItem)
 
     # window functions
     def center(self):
