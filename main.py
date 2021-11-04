@@ -13,6 +13,12 @@ from main_window import MainWindow
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore
 
+import re
+
+def escape_ansi(line):
+    ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
+    return ansi_escape.sub('', str(line))
+
 import signal
 import serial
 
@@ -48,8 +54,11 @@ def main():
         global serial_port
         global window
 
-        if serial_port.inWaiting() == 0:
-            return  # do nothing
+        try:
+            if serial_port and serial_port.inWaiting() == 0:
+                return  # do nothing
+        except:
+            return
 
         # read a line from serial port
         strdata = serial_port.readline()
@@ -57,10 +66,12 @@ def main():
         # and decode it
         if sys.version_info >= (3, 0):
             strdata = strdata.decode("utf-8", "backslashreplace")
+
+        strdata = escape_ansi(strdata)
         arrdata = strdata.split(",")
 
         # return if there was not a comma
-        if len(arrdata) < 2:
+        if len(arrdata) < 5:
             return
 
         # determine if this line is a header or not (first value is string data)
