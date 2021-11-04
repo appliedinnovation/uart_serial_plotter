@@ -52,11 +52,12 @@ class MainWindow(QMainWindow):
         toolbar_remove,
     )
 
-    def __init__(self):
+    def __init__(self, on_port_changed_callback):
         super().__init__()
 
         self.port = None
         self.__init_ui__()
+        self.on_port_changed_callback = on_port_changed_callback
 
     def __init_ui__(self):
         QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
@@ -116,6 +117,7 @@ class MainWindow(QMainWindow):
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
             self.port = newPort
+            self.on_port_changed_callback(self.port)
 
     def __refresh_ports__(self):
         self.serial_ports = list_serial_ports()

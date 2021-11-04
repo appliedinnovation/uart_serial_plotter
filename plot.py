@@ -27,7 +27,9 @@ class Plot(object):
             if name in self.traces:
                 pass
             else:
-                self.traces[name] = self.canvas.plot(pen=(i, len(self.trace_names)), name=name)
+                self.traces[name] = self.canvas.plot(
+                    pen=(i, len(self.trace_names)), name=name
+                )
 
     def update_data(self, data):
         for name in self.trace_names:
@@ -50,4 +52,6 @@ class Plot(object):
         if name in self.traces:
             self.traces[name].setData(data_x, data_y)
         else:
-            self.traces[name] = self.canvas.plot(pen=(len(self.trace_names), len(self.trace_names)), name=name)
+            self.traces[name] = self.canvas.plot(
+                pen=(len(self.trace_names), len(self.trace_names)), name=name
+            )

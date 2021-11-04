@@ -14,32 +14,70 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore
 
 import signal
+import serial
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-
-parser = argparse.ArgumentParser(description='Plot CSV of timeseries data')
-parser.add_argument('csvfile', help='CSV file to parse')
+parser = argparse.ArgumentParser(
+    description="Plot CSV-formatted timeseries data received from UART"
+)
+parser.add_argument("baudrate", type=int, help="UART baudrate")
 args = parser.parse_args()
 
-app = QApplication(sys.argv)
-window = MainWindow()
+serial_port = None
+BAUD_RATE = args.baudrate
 
-# Open CSV file
-csvfile = open(args.csvfile, 'r')
-reader = csv.reader(csvfile)
+app = QApplication(sys.argv)
+
+
+def on_port_changed_callback(port):
+    global serial_port
+    if serial_port:
+        serial_port.close()
+    serial_port = serial.Serial(port, BAUD_RATE)
+    print("Listening on serial port", port)
+
+
+window = MainWindow(on_port_changed_callback)
+serial_port = serial.Serial(window.port, BAUD_RATE)
+
 
 def main():
-    header = next(reader)
-    window.plot_page.plot.set_header(header)
-
     def update():
-        global reader
+        global header
+        global serial_port
         global window
-        row = next(reader)
-        window.plot_page.plot.update_data([[float(x) for x in row]])
 
-    timer = QtCore.QTimer(timerType=0) # Qt.PreciseTimer
+        if serial_port.inWaiting() == 0:
+            return  # do nothing
+
+        # read a line from serial port
+        strdata = serial_port.readline()
+
+        # and decode it
+        if sys.version_info >= (3, 0):
+            strdata = strdata.decode("utf-8", "backslashreplace")
+        arrdata = strdata.split(",")
+
+        # return if there was not a comma
+        if len(arrdata) < 2:
+            return
+
+        # determine if this line is a header or not (first value is string data)
+        is_header = False
+        try:
+            dummy = float(arrdata[0])
+        except ValueError:
+            is_header = True
+
+        if is_header:
+            # an array of strings
+            window.plot_page.plot.set_header(arrdata)
+        else:
+            # an array of numbers
+            window.plot_page.plot.update_data([[float(x) for x in arrdata]])
+
+    timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
     timer.timeout.connect(update)
     timer.start(20)
     sys.exit(app.exec_())
