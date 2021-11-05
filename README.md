@@ -34,6 +34,8 @@ The GUI allows the user to select the serial device (out of all the serial devic
 
 ![image](https://i.imgur.com/KhoK05k.png)
 
+![image](https://i.imgur.com/SqLQyEa.png)
+
 ![image](https://i.imgur.com/e6RhP3r.png)
 
 ## Loading CSV files
