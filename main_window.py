@@ -151,9 +151,12 @@ class MainWindow(QMainWindow):
         self.resetDevice.setStatusTip("Reset Device")
         self.resetDevice.triggered.connect(self.__reset_device__)
 
-        self.resetViewAction = Action(None, "Reset Plot", self)
-        self.resetViewAction.setShortcut("Ctrl+R")
-        self.resetViewAction.triggered.connect(self.__reset_view__)
+        self.rescaleAxesAction = Action(None, "Rescale Axes", self)
+        self.rescaleAxesAction.setShortcut("Ctrl+R")
+        self.rescaleAxesAction.triggered.connect(self.__rescale_axes__)
+
+        self.clearPlotAction = Action(None, "Clear Plot", self)
+        self.clearPlotAction.triggered.connect(self.__clear_plot__)
 
         self.importSceneAction = Action(None, "Import from CSV", self)
         self.importSceneAction.setShortcut("Ctrl+O")
@@ -173,7 +176,8 @@ class MainWindow(QMainWindow):
         self.menu_add_action("&File", self.exitAction)
 
         self.menubar_add_menu("&View")
-        self.menu_add_action("&View", self.resetViewAction)
+        self.menu_add_action("&View", self.rescaleAxesAction)
+        self.menu_add_action("&View", self.clearPlotAction)
 
         self.menubar_add_menu("&Serial")
         self.__refresh_ports__()
@@ -248,9 +252,15 @@ class MainWindow(QMainWindow):
         if self.on_reset_device_callback:
             self.on_reset_device_callback()
 
-    def __reset_view__(self):
+    def __rescale_axes__(self):
         self.plot_page.plot.canvas.getPlotItem().disableAutoRange()
         self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
+
+    def __clear_plot__(self):
+        self.plot_page.plot.plot_item.clear()
+        self.plot_page.plot.traces = {}
+        self.plot_page.plot.trace_names = []
+        self.plot_page.plot.data = {}
 
     def __export_scene__(self):
         try:
@@ -278,10 +288,7 @@ class MainWindow(QMainWindow):
                 header.insert(0, "Time")
 
                 # Clear existing plot and set new header
-                self.plot_page.plot.plot_item.clear()
-                self.plot_page.plot.traces = {}
-                self.plot_page.plot.trace_names = []
-                self.plot_page.plot.data = {}
+                self.__clear_plot__()
                 self.plot_page.plot.set_header(header)
 
                 dataset = []
