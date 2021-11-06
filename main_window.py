@@ -87,10 +87,10 @@ class MainWindow(QMainWindow):
             921600,
         ]
 
-        self.__init_ui__()
         self.on_port_changed_callback = on_port_changed_callback
         self.on_baudrate_changed_callback = on_baudrate_changed_callback
         self.on_reset_device_callback = on_reset_device_callback
+        self.__init_ui__()
 
     def __init_ui__(self):
         QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
@@ -198,6 +198,8 @@ class MainWindow(QMainWindow):
                 if i == len(self.serial_ports) - 1:
                     action.setChecked(True)
                     self.port = self.serial_ports[i]
+                    if self.on_port_changed_callback:
+                        self.on_port_changed_callback(self.port)
                 self.ports_action_group.addAction(action)
             self.ports_action_group.setExclusive(True)
         else:

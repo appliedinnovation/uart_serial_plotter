@@ -50,13 +50,14 @@ def reopen_serial_port():
         serial_port.close()
 
     # Open serial_port
-    serial_port = serial.Serial()
-    serial_port.port = current_port
-    serial_port.baudrate = current_baudrate
-    # Disable hardware flow control
-    serial_port.setRTS(False)
-    serial_port.setDTR(False)
-    serial_port.open()
+    if current_port and current_baudrate:
+        serial_port = serial.Serial()
+        serial_port.port = current_port
+        serial_port.baudrate = current_baudrate
+        # Disable hardware flow control
+        serial_port.setRTS(False)
+        serial_port.setDTR(False)
+        serial_port.open()
 
 
 def on_port_changed_callback(port):
@@ -104,12 +105,12 @@ if current_port:
 
 def on_usb_device_arrival():
     print("Detected New USB Device")
-    pass
+    window.__refresh_ports__()
 
 
 def on_usb_device_removal():
     print("Detected USB Device Removal")
-    pass
+    window.__refresh_ports__()
 
 
 def main():
