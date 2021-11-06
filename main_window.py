@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
             font = QtGui.QFont(desired_font)
         else:
             font = QtGui.QFont("Monospace")
-        # font.setStyleHint(QtGui.QFont.System)
+        font.setStyleHint(QtGui.QFont.System)
         font.setPointSize(10)
         self.text_edit.setFont(font)
         self.text_edit.setStyleSheet(
@@ -148,6 +148,7 @@ class MainWindow(QMainWindow):
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
             "QTabWidget:pane {border: 1px solid gray;}"
         )
+        self.tabs.setFont(font)
 
         # self.statusBar = QStatusBar()
         # self.statusBar.setFont(font)
