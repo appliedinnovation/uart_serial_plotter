@@ -57,12 +57,16 @@ class MainWindow(QMainWindow):
         toolbar_remove,
     )
 
-    def __init__(self, on_port_changed_callback=None):
+    def __init__(
+        self, on_port_changed_callback=None, on_baudrate_changed_callback=None
+    ):
         super().__init__()
 
         self.port = None
+        self.baudrate = 115200
         self.__init_ui__()
         self.on_port_changed_callback = on_port_changed_callback
+        self.on_baudrate_changed_callback = on_baudrate_changed_callback
 
     def __init_ui__(self):
         QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
@@ -72,10 +76,12 @@ class MainWindow(QMainWindow):
 
         self.__init_actions__()
         self.__init_port_selector_combo_box__()
+        self.__init_baudrate_selector_combo_box__()
         self.__init_menubar__()
         self.__init_toolbar__()
 
         self.plot_page = pages.PlotPage()
+        self.plot_page.plot.plot_item.clear()
 
         # main controls
         self.setCentralWidget(self.plot_page)
@@ -133,6 +139,33 @@ class MainWindow(QMainWindow):
         self.__refresh_ports__()
         self.port_selector.activated[str].connect(self.__on_port_changed__)
 
+    def __init_baudrate_selector_combo_box__(self):
+        self.baudrate_selector = QComboBox(self)
+        self.baudrate_selector.clear()
+
+        self.baudrate_values = [
+            110,
+            150,
+            300,
+            1200,
+            2400,
+            4800,
+            9600,
+            19200,
+            38400,
+            57600,
+            115200,
+            230400,
+            460800,
+            921600,
+        ]
+
+        self.baudrate_selector.addItems([str(b) for b in self.baudrate_values])
+        self.baudrate_selector.setCurrentIndex(
+            self.baudrate_values.index(self.baudrate)
+        )
+        self.baudrate_selector.activated[str].connect(self.__on_baudrate_changed__)
+
     def __init_toolbar__(self):
         self.toolbar_init()
         self.toolbar_create("toolbar1")
@@ -142,6 +175,10 @@ class MainWindow(QMainWindow):
         self.toolbar_add_action("toolbar1", self.refreshAction)
         self.toolbar_add_widget("toolbar1", QLabel(" Serial Port: "))
         self.toolbar_add_widget("toolbar1", self.port_selector)
+
+        self.toolbar_add_separator("toolbar1")
+        self.toolbar_add_widget("toolbar1", QLabel(" Baud: "))
+        self.toolbar_add_widget("toolbar1", self.baudrate_selector)
 
         self.toolbar_add_separator("toolbar1")
         self.toolbar_add_action("toolbar1", self.resetViewAction)
@@ -156,6 +193,11 @@ class MainWindow(QMainWindow):
         if newPort != self.port:
             self.port = newPort
             self.on_port_changed_callback(self.port)
+
+    def __on_baudrate_changed__(self, newBaudRate):
+        if newBaudRate != self.baudrate:
+            self.baudrate = newBaudRate
+            self.on_baudrate_changed_callback(int(self.baudrate))
 
     def __refresh_ports__(self):
         self.serial_ports = list_serial_ports()
@@ -179,14 +221,14 @@ class MainWindow(QMainWindow):
         dialog = QFileDialog()
         fmt = "csv"
         dialog.setDefaultSuffix(fmt)
-        dialog.setNameFilters([f'{fmt} (*.{fmt})'])
+        dialog.setNameFilters([f"{fmt} (*.{fmt})"])
 
         if dialog.exec_() == QDialog.Accepted:
             path = dialog.selectedFiles()[0]
-            with open(path, 'r') as csvfile:
+            with open(path, "r") as csvfile:
                 reader = csv.reader(csvfile)
 
-                # Parse Header 
+                # Parse Header
                 # Expected: "Foo_x","Foo_y","Bar_x","Bar_y",...
                 # Convert to: "Foo","Bar",...
                 header = ["_".join(h.strip().split("_")[:-1]) for h in next(reader)]

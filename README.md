@@ -8,33 +8,14 @@ This project provides [pyqtgraph](https://www.pyqtgraph.org/) based applications
 - Plot timeseries data read from CSV file
 - Dynamically change the serial port being monitored
 - Export the plot / scane to PNG, SVG, CSV etc.
-- Load previously exported CSV files of plot / scene.
+- Load previously exported CSV files of plot / scene
 - Zoom into parts of the plot, reset the view, export/screenshot select portions of the plot
-
-![image](https://i.imgur.com/vkrgcVm.png)
 
 ## Quick Start
 
-The main program `main.py` allows for real-time plotting of CSV-formatted time series data received over UART / serial device.
+Simply run `main.py`
 
 ```console
-foo@bar:~$ python main.py -h
-usage: main.py [-h] baudrate [header]
-
-Plot CSV-formatted timeseries data received from UART
-
-positional arguments:
-  baudrate    UART baudrate
-  header      Header for CSV-formatted timeseries data
-
-options:
-  -h, --help  show this help message and exit
+foo@bar:~$ python main.py
 ```
 
-The GUI allows the user to select the serial device (out of all the serial devices detected).
-
-![image](https://i.imgur.com/KhoK05k.png)
-
-![image](https://i.imgur.com/SqLQyEa.png)
-
-![image](https://i.imgur.com/e6RhP3r.png)

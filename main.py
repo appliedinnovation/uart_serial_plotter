@@ -1,11 +1,5 @@
 #!/usr/bin/python
-import time
-import glob
 import sys
-import os
-
-import argparse
-import csv
 
 from multiprocessing import Process, Queue
 
@@ -15,44 +9,65 @@ from PyQt5 import QtCore
 
 import re
 
+
 def escape_ansi(line):
-    ansi_escape = re.compile(r'(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]')
-    return ansi_escape.sub('', str(line))
+    ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", str(line))
+
 
 import signal
 import serial
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-parser = argparse.ArgumentParser(
-    description="Plot CSV-formatted timeseries data received from UART"
-)
-parser.add_argument("baudrate", type=int, help="UART baudrate")
-parser.add_argument("header", \
-    nargs="?", 
-    default="Time,Duty_cycle,Velocity_current,Acceleration_current,Brake_enabled,Motor1_ADC_Voltage_mV,Load_ADC_Voltage_mV",
-    type=str, 
-    help="Header for CSV-formatted timeseries data")
-args = parser.parse_args()
-
 serial_port = None
-BAUD_RATE = args.baudrate
+current_port = None
+current_baudrate = None
 
 app = QApplication(sys.argv)
 
 
-def on_port_changed_callback(port):
+def reopen_serial_port():
     global serial_port
+    global current_port
+    global current_baudrate
+
+    # Close if already open
     if serial_port:
         serial_port.close()
-    serial_port = serial.Serial(port, BAUD_RATE)
-    print("Listening on serial port", port)
+
+    # Open serial_port
+    serial_port = serial.Serial()
+    serial_port.port = current_port
+    serial_port.baudrate = current_baudrate
+    # Disable hardware flow control
+    serial_port.setRTS(False)
+    serial_port.setDTR(False)
+    serial_port.open()
 
 
-window = MainWindow(on_port_changed_callback)
-serial_port = serial.Serial(window.port, BAUD_RATE)
+def on_port_changed_callback(port):
+    global current_port
+    current_port = port
+    reopen_serial_port()
 
-window.plot_page.plot.set_header([c for c in args.header.split(",")])
+
+def on_baudrate_changed_callback(baudrate):
+    global current_port
+    global current_baudrate
+    current_baudrate = baudrate
+    if current_port:
+        reopen_serial_port()
+
+
+window = MainWindow(on_port_changed_callback, on_baudrate_changed_callback)
+
+# Open serial comms
+current_port = window.port
+current_baudrate = window.baudrate
+if current_port:
+    reopen_serial_port()
+
 
 def main():
     def update():
@@ -60,8 +75,11 @@ def main():
         global serial_port
         global window
 
+        if not serial_port:
+            return
+
         try:
-            if serial_port and serial_port.inWaiting() == 0:
+            if serial_port.inWaiting() == 0:
                 return  # do nothing
         except:
             return
@@ -95,6 +113,15 @@ def main():
         else:
             # an array of numbers
             datapoint = [float(x.strip()) for x in arrdata]
+
+            if len(window.plot_page.plot.trace_names) == 0:
+                # Header not set
+                # Maybe we didn't receive it over UART
+                # Set the Header to be: "Time","Signal_1", "Signal_2",...
+                header = ["Time"]
+                header.extend(["Signal_" + str(i) for i in range(len(datapoint))])
+                window.plot_page.plot.set_header(header)
+
             window.plot_page.plot.update_data([datapoint])
 
     timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
