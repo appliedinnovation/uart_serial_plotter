@@ -1,5 +1,6 @@
 import functools
 from numpy import empty
+from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem
 import serial
 import serial.tools.list_ports
 from PyQt5 import QtGui
@@ -7,6 +8,7 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QActionGroup,
     QMenu,
+    QSizePolicy,
     QWidget,
     QPushButton,
     QLabel,
@@ -22,7 +24,8 @@ from PyQt5.QtWidgets import (
     QSplitter,
     QScrollArea,
     QTextEdit,
-    QVBoxLayout
+    QVBoxLayout,
+    QStatusBar,
 )
 from PyQt5.QtCore import (
     QFileInfo,
@@ -50,10 +53,18 @@ import csv
 
 class MainWindow(QMainWindow):
 
-    from menubar import menubar_init, menubar_add_menu, menubar_get_menu, menu_add_action
+    from menubar import (
+        menubar_init,
+        menubar_add_menu,
+        menubar_get_menu,
+        menu_add_action,
+    )
 
     def __init__(
-        self, on_port_changed_callback=None, on_baudrate_changed_callback=None, on_reset_device_callback=None
+        self,
+        on_port_changed_callback=None,
+        on_baudrate_changed_callback=None,
+        on_reset_device_callback=None,
     ):
         super().__init__()
 
@@ -92,26 +103,41 @@ class MainWindow(QMainWindow):
 
         self.plot_page = pages.PlotPage()
         self.plot_page.plot.plot_item.clear()
+        self.plot_page.setMinimumHeight(900)
 
         self.text_edit = QTextEdit()
-        font = QtGui.QFont()
+        font = QtGui.QFont("Monospace")
+        font.setStyleHint(QtGui.QFont.Monospace)
         font.setPointSize(11)
         self.text_edit.setFont(font)
-        self.text_edit.setContentsMargins(100, 100, 100, 100)
+        self.text_edit.verticalScrollBar().setStyleSheet(
+            "QScrollBar { background-color: rgb(42,42,42); }"
+        )
+        self.text_edit.setStyleSheet(
+            "QTextEdit { background-color: rgb(12,12,12); color: rgb(255, 255, 255); padding-left: 20px; }"
+        )
+
+        self.statusBar = QStatusBar()
+        self.statusBar.setFont(font)
+        self.statusBar.setStyleSheet("QStatusBar { padding: 50px; }")
+        # self.setStatusBar(self.statusBar)
 
         splitter = QSplitter(QtCore.Qt.Vertical)
         layout = QVBoxLayout()
+        splitter.setStyleSheet("QWidget { background-color: rgb(42, 42, 42); }")
         splitter.addWidget(self.plot_page)
         splitter.addWidget(self.text_edit)
+        splitter.addWidget(self.statusBar)
         splitter.setStretchFactor(1, 1)
         layout.addWidget(splitter)
 
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
+
         self.setGeometry(0, 0, 1200, 1000)
         self.center()
-        self.show()
+        self.showMaximized()
 
     def __init_actions__(self):
         self.exitAction = Action(None, "Exit", self)
@@ -127,7 +153,7 @@ class MainWindow(QMainWindow):
         self.resetDevice.setStatusTip("Reset Device")
         self.resetDevice.triggered.connect(self.__reset_device__)
 
-        self.resetViewAction = Action(None, "Reset View", self)
+        self.resetViewAction = Action(None, "Reset Plot", self)
         self.resetViewAction.setShortcut("Ctrl+R")
         self.resetViewAction.triggered.connect(self.__reset_view__)
 
@@ -144,12 +170,12 @@ class MainWindow(QMainWindow):
     def __init_menubar__(self):
         self.menubar_init()
         self.menubar_add_menu("&File")
+        self.menu_add_action("&File", self.importSceneAction)
+        self.menu_add_action("&File", self.exportSceneAction)
         self.menu_add_action("&File", self.exitAction)
 
-        self.menubar_add_menu("&Plot")
-        self.menu_add_action("&Plot", self.resetViewAction)
-        self.menu_add_action("&Plot", self.importSceneAction)
-        self.menu_add_action("&Plot", self.exportSceneAction)
+        self.menubar_add_menu("&View")
+        self.menu_add_action("&View", self.resetViewAction)
 
         self.menubar_add_menu("&Serial")
         self.__refresh_ports__()
@@ -165,7 +191,10 @@ class MainWindow(QMainWindow):
             self.ports_action_group = QActionGroup(self)
             for i in range(len(self.serial_ports)):
                 port_name = self.serial_ports[i]
-                action = ports_submenu.addAction("&" + str(port_name), functools.partial(self.__on_port_changed__, port_name))
+                action = ports_submenu.addAction(
+                    "&" + str(port_name),
+                    functools.partial(self.__on_port_changed__, port_name),
+                )
                 action.setCheckable(True)
                 # Check the last serial port
                 if i == len(self.serial_ports) - 1:
@@ -185,7 +214,9 @@ class MainWindow(QMainWindow):
 
         self.baudrate_action_group = QActionGroup(self)
         for baud in self.baudrate_values:
-            action = baudrate_submenu.addAction("&" + str(baud), functools.partial(self.__on_baudrate_changed__, baud))
+            action = baudrate_submenu.addAction(
+                "&" + str(baud), functools.partial(self.__on_baudrate_changed__, baud)
+            )
             action.setCheckable(True)
             if baud == self.baudrate:
                 action.setChecked(True)

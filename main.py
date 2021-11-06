@@ -9,6 +9,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 import re
+from ansi2html import Ansi2HTMLConverter
 
 
 def escape_ansi(line):
@@ -26,12 +27,14 @@ current_port = None
 current_baudrate = None
 
 app = QApplication(sys.argv)
+window = None
 
 
 def reopen_serial_port():
     global serial_port
     global current_port
     global current_baudrate
+    global window
 
     # Close if already open
     if serial_port:
@@ -45,7 +48,11 @@ def reopen_serial_port():
     serial_port.setRTS(False)
     serial_port.setDTR(False)
     serial_port.open()
-    print("Opened port:", current_port)
+
+    window.statusBar.setStyleSheet(
+        "QStatusBar { background-color: black; color: rgb(0,255,0); font-weight:bold; }"
+    )
+    window.statusBar.showMessage("Connected: " + str(current_port))
 
 
 def on_port_changed_callback(port):
@@ -61,24 +68,34 @@ def on_baudrate_changed_callback(baudrate):
     if current_port:
         reopen_serial_port()
 
+
 def on_reset_device_callback():
     global serial_port
     global current_port
     global current_baudrate
+    global window
+
+    window.statusBar.setStyleSheet(
+        "QStatusBar { background-color: black; color: yellow; font-weight:bold; }"
+    )
+    window.statusBar.showMessage("Resetting Device...")
 
     # Close if already open
     if serial_port:
         serial_port.close()
 
     # Reset the device by re-opening Serial port
-    # with DTR and RTS enabled 
-    # 
+    # with DTR and RTS enabled
+    #
     # These are enabled by default
     serial_port = serial.Serial(current_port, current_baudrate)
 
     reopen_serial_port()
 
-window = MainWindow(on_port_changed_callback, on_baudrate_changed_callback, on_reset_device_callback)
+
+window = MainWindow(
+    on_port_changed_callback, on_baudrate_changed_callback, on_reset_device_callback
+)
 
 # Open serial comms
 current_port = window.port
@@ -109,15 +126,18 @@ def main():
         if sys.version_info >= (3, 0):
             strdata = strdata.decode("utf-8", "backslashreplace")
 
-        strdata = escape_ansi(strdata)
-        strdata = strdata.strip()
+        conv = Ansi2HTMLConverter()
+        html = conv.convert(strdata)
 
-        # Append received data to GUI output
+        # Append received data to GUI output window
         cursor = window.text_edit.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
-        cursor.insertText(strdata + "\n")
+        cursor.insertHtml("<b>" + html.replace("\n", "") + "</b>")
         window.text_edit.setTextCursor(cursor)
         window.text_edit.ensureCursorVisible()
+
+        strdata = escape_ansi(strdata)
+        strdata = strdata.strip()
 
         arrdata = strdata.split(",")
         print(arrdata)
