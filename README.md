@@ -13,9 +13,10 @@ This project provides [pyqtgraph](https://www.pyqtgraph.org/) based applications
 
 ## Quick Start
 
-Simply run `main.py`
+Install dependencies and run `main.py`
 
 ```console
+foo@bar:~$ pip install -r requirements.txt
 foo@bar:~$ python main.py
 ```
 
