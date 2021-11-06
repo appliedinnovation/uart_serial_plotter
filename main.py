@@ -11,6 +11,15 @@ from PyQt5 import QtGui
 import re
 from ansi2html import Ansi2HTMLConverter
 
+import sys
+
+if sys.platform.startswith("win"):
+    from usb_device_listener_windows import UsbDeviceChangeMonitor
+elif sys.platform.startswith("linux"):
+    import usb_device_listener_linux
+else:
+    raise ImportError("my module doesn't support this system")
+
 
 def escape_ansi(line):
     ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
@@ -49,11 +58,6 @@ def reopen_serial_port():
     serial_port.setDTR(False)
     serial_port.open()
 
-    window.statusBar.setStyleSheet(
-        "QStatusBar { background-color: rgb(12,12,12); color: rgb(0,255,0); font-weight:bold; }"
-    )
-    window.statusBar.showMessage("Connected: " + str(current_port))
-
 
 def on_port_changed_callback(port):
     global current_port
@@ -75,11 +79,6 @@ def on_reset_device_callback():
     global current_baudrate
     global window
 
-    window.statusBar.setStyleSheet(
-        "QStatusBar { background-color: rgb(12,12,12); color: yellow; font-weight:bold; }"
-    )
-    window.statusBar.showMessage("Resetting Device...")
-
     # Close if already open
     if serial_port:
         serial_port.close()
@@ -89,7 +88,6 @@ def on_reset_device_callback():
     #
     # These are enabled by default
     serial_port = serial.Serial(current_port, current_baudrate)
-
     reopen_serial_port()
 
 
@@ -104,7 +102,19 @@ if current_port:
     reopen_serial_port()
 
 
+def on_usb_device_arrival():
+    print("Detected New USB Device")
+    pass
+
+
+def on_usb_device_removal():
+    print("Detected USB Device Removal")
+    pass
+
+
 def main():
+    w = UsbDeviceChangeMonitor(on_usb_device_arrival, on_usb_device_removal)
+
     def update():
         global header
         global serial_port

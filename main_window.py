@@ -101,8 +101,7 @@ class MainWindow(QMainWindow):
         self.__init_actions__()
         self.__init_menubar__()
 
-        width = self.frameGeometry().width()
-        height = self.frameGeometry().height()
+        self.setStyleSheet("QMainWindow { background-color: rgb(0,0,0); }")
 
         self.plot_page = pages.PlotPage()
         self.plot_page.plot.plot_item.clear()
@@ -119,17 +118,16 @@ class MainWindow(QMainWindow):
             "QTextEdit { background-color: rgb(12,12,12); color: rgb(255, 255, 255); padding-left: 20px; }"
         )
 
-        self.statusBar = QStatusBar()
-        self.statusBar.setFont(font)
-        self.statusBar.setStyleSheet("QStatusBar { background-color: rgb(12,12,12); padding: 70px; }")
+        # self.statusBar = QStatusBar()
+        # self.statusBar.setFont(font)
+        # self.statusBar.setStyleSheet("QStatusBar { text-align: right; background-color: rgb(12,12,12); padding-left: 20px; }")
 
         splitter = QSplitter(QtCore.Qt.Vertical)
         layout = QVBoxLayout()
         splitter.setStyleSheet("QWidget { background-color: rgb(42, 42, 42); }")
         splitter.addWidget(self.plot_page)
         splitter.addWidget(self.text_edit)
-        splitter.addWidget(self.statusBar)
-        # splitter.setStretchFactor(1, 1)
+        # splitter.addWidget(self.statusBar)
         layout.addWidget(splitter)
 
         widget = QWidget()
@@ -207,6 +205,8 @@ class MainWindow(QMainWindow):
 
         self.__init_baudrate_menu__()
         self.menu_add_action("&Serial", self.resetDevice)
+        if len(self.serial_ports) == 0:
+            self.resetDevice.setEnabled(False)
 
     def __init_baudrate_menu__(self):
         serial_menu = self.menubar_get_menu("&Serial")
