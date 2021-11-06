@@ -101,9 +101,11 @@ class MainWindow(QMainWindow):
         self.__init_actions__()
         self.__init_menubar__()
 
+        width = self.frameGeometry().width()
+        height = self.frameGeometry().height()
+
         self.plot_page = pages.PlotPage()
         self.plot_page.plot.plot_item.clear()
-        self.plot_page.setMinimumHeight(900)
 
         self.text_edit = QTextEdit()
         font = QtGui.QFont("Monospace")
@@ -119,8 +121,7 @@ class MainWindow(QMainWindow):
 
         self.statusBar = QStatusBar()
         self.statusBar.setFont(font)
-        self.statusBar.setStyleSheet("QStatusBar { padding: 50px; }")
-        # self.setStatusBar(self.statusBar)
+        self.statusBar.setStyleSheet("QStatusBar { background-color: rgb(12,12,12); padding: 70px; }")
 
         splitter = QSplitter(QtCore.Qt.Vertical)
         layout = QVBoxLayout()
@@ -128,14 +129,13 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.plot_page)
         splitter.addWidget(self.text_edit)
         splitter.addWidget(self.statusBar)
-        splitter.setStretchFactor(1, 1)
+        # splitter.setStretchFactor(1, 1)
         layout.addWidget(splitter)
 
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-        self.setGeometry(0, 0, 1200, 1000)
         self.center()
         self.showMaximized()
 

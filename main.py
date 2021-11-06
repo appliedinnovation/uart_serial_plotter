@@ -50,7 +50,7 @@ def reopen_serial_port():
     serial_port.open()
 
     window.statusBar.setStyleSheet(
-        "QStatusBar { background-color: black; color: rgb(0,255,0); font-weight:bold; }"
+        "QStatusBar { background-color: rgb(12,12,12); color: rgb(0,255,0); font-weight:bold; }"
     )
     window.statusBar.showMessage("Connected: " + str(current_port))
 
@@ -76,7 +76,7 @@ def on_reset_device_callback():
     global window
 
     window.statusBar.setStyleSheet(
-        "QStatusBar { background-color: black; color: yellow; font-weight:bold; }"
+        "QStatusBar { background-color: rgb(12,12,12); color: yellow; font-weight:bold; }"
     )
     window.statusBar.showMessage("Resetting Device...")
 
