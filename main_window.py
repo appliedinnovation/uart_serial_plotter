@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
         self.refreshAction.setStatusTip("Refresh Serial Ports")
         self.refreshAction.triggered.connect(self.__refresh_ports__)
 
-        self.resetDevice = Action(None, "Reset Device", self)
+        self.resetDevice = Action(None, "Toggle DTR/RTS", self)
         self.resetDevice.setStatusTip("Reset Device")
         self.resetDevice.triggered.connect(self.__reset_device__)
 
