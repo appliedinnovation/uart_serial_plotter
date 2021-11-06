@@ -12,6 +12,8 @@ class Plot(object):
         self.canvas = pg.PlotWidget()
         self.plot = None
         self.canvas.showGrid(x=True, y=True)
+        self.canvas.getAxis('left').setTextPen('w')
+        self.canvas.getAxis('bottom').setTextPen('w')
         self.plot_item = self.canvas.getPlotItem()
 
         if header:

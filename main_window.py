@@ -26,6 +26,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QStatusBar,
+    QTabWidget
 )
 from PyQt5.QtCore import (
     QFileInfo,
@@ -95,38 +96,56 @@ class MainWindow(QMainWindow):
     def __init_ui__(self):
         QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
 
-        self.setStyleSheet("QLabel {font: 15pt} QPushButton {font: 15pt}")
+        fontDatabase = QtGui.QFontDatabase()
+        families = fontDatabase.families()
+
         self.setWindowTitle("UART Serial Plotter")
 
         self.__init_actions__()
         self.__init_menubar__()
 
-        self.setStyleSheet("QMainWindow { background-color: rgb(0,0,0); }")
+        self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
 
         self.plot_page = pages.PlotPage()
         self.plot_page.plot.plot_item.clear()
 
         self.text_edit = QTextEdit()
-        font = QtGui.QFont("Monospace")
-        font.setStyleHint(QtGui.QFont.Monospace)
-        font.setPointSize(11)
+        desired_font = "Consolas"
+        font = None
+        if desired_font in families:
+            font = QtGui.QFont(desired_font)
+        else:
+            font = QtGui.QFont("Monospace")
+        # font.setStyleHint(QtGui.QFont.System)
+        font.setPointSize(10)
         self.text_edit.setFont(font)
-        self.text_edit.verticalScrollBar().setStyleSheet(
-            "QScrollBar { background-color: rgb(42,42,42); }"
-        )
         self.text_edit.setStyleSheet(
-            "QTextEdit { background-color: rgb(12,12,12); color: rgb(255, 255, 255); padding-left: 20px; }"
+            "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
+            "QScrollBar {background: rgb(101, 101, 101);}"
+        )
+
+        self.log = QTextEdit()
+
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.text_edit, "Output")
+        self.tabs.setTabText(0,"Output")
+        # self.tabs.addTab(self.log, "Log")
+        # self.tabs.setTabText(1,"Log")
+        self.tabs.setStyleSheet(
+            "QTabBar::tab:selected {background: white; color: black;}"
+            "QTabBar::tab {background: rgb(27,27,28); color: white;}"
+            "QTabWidget:pane {border: 1px solid gray;}"
         )
 
         # self.statusBar = QStatusBar()
         # self.statusBar.setFont(font)
-        # self.statusBar.setStyleSheet("QStatusBar { text-align: right; background-color: rgb(12,12,12); padding-left: 20px; }")
+        # self.statusBar.setStyleSheet("QStatusBar { text-align: right; background-color: rgb(27,27,28); padding-left: 20px; }")
 
         splitter = QSplitter(QtCore.Qt.Vertical)
         layout = QVBoxLayout()
-        splitter.setStyleSheet("QWidget { background-color: rgb(42, 42, 42); }")
+        splitter.setStyleSheet("QWidget {background: rgb(27, 27, 28);}")
         splitter.addWidget(self.plot_page)
-        splitter.addWidget(self.text_edit)
+        splitter.addWidget(self.tabs)
         # splitter.addWidget(self.statusBar)
         layout.addWidget(splitter)
 

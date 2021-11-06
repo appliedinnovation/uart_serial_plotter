@@ -9,7 +9,6 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 import re
-from ansi2html import Ansi2HTMLConverter
 
 import sys
 
@@ -114,6 +113,7 @@ def on_usb_device_removal():
     window.__refresh_ports__()
 
 
+
 def main():
     w = UsbDeviceChangeMonitor(on_usb_device_arrival, on_usb_device_removal)
 
@@ -138,21 +138,18 @@ def main():
         if sys.version_info >= (3, 0):
             strdata = strdata.decode("utf-8", "backslashreplace")
 
-        conv = Ansi2HTMLConverter()
-        html = conv.convert(strdata)
+        strdata = escape_ansi(strdata)
+        strdata = strdata.strip()
 
         # Append received data to GUI output window
         cursor = window.text_edit.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
-        cursor.insertHtml("<b>" + html.replace("\n", "") + "</b>")
+
+        cursor.insertText(strdata + "\n")
         window.text_edit.setTextCursor(cursor)
         window.text_edit.ensureCursorVisible()
 
-        strdata = escape_ansi(strdata)
-        strdata = strdata.strip()
-
         arrdata = strdata.split(",")
-        print(arrdata)
 
         # return if there was not a comma
         if len(arrdata) < 5:
