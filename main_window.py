@@ -121,7 +121,7 @@ class MainWindow(QMainWindow):
         self.text_edit.setFont(font)
         self.text_edit.setStyleSheet(
             "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
-            "QScrollBar {background: rgb(74,73,73);}"
+            "QScrollBar {background: rgb(74,73,73); height: 0px; width: 0px; }"
             "QScrollBar::handle:vertical {"
             "    background: rgb(74,73,73);"
             "}"
