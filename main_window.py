@@ -239,12 +239,17 @@ class MainWindow(QMainWindow):
     def __refresh_ports__(self):
         self.serial_ports = list_serial_ports()
         self.__init_port_menu__()
+        if len(self.serial_ports) == 0:
+            self.resetDevice.setEnabled(False)
+        else:
+            self.resetDevice.setEnabled(True)
 
     def __reset_device__(self):
         if self.on_reset_device_callback:
             self.on_reset_device_callback()
 
     def __reset_view__(self):
+        self.plot_page.plot.canvas.getPlotItem().disableAutoRange()
         self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
 
     def __export_scene__(self):
