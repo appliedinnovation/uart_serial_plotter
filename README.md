@@ -19,4 +19,4 @@ Simply run `main.py`
 foo@bar:~$ python main.py
 ```
 
-![image](https://raw.githubusercontent.com/appliedinnovation/uart_serial_plotter/master/images/demo_01.png?token=ACAPAK4OFRHMDI7LBLRK2E3BR4TU6)
+![image](https://raw.githubusercontent.com/appliedinnovation/uart_serial_plotter/master/images/demo_02.png?token=ACAPAK2Y4RQ3FMUBJVFKLHLBR5PPM)
