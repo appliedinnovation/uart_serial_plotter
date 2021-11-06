@@ -6,6 +6,7 @@ from multiprocessing import Process, Queue
 from main_window import MainWindow
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtCore
+from PyQt5 import QtGui
 
 import re
 
@@ -44,6 +45,7 @@ def reopen_serial_port():
     serial_port.setRTS(False)
     serial_port.setDTR(False)
     serial_port.open()
+    print("Opened port:", current_port)
 
 
 def on_port_changed_callback(port):
@@ -59,8 +61,24 @@ def on_baudrate_changed_callback(baudrate):
     if current_port:
         reopen_serial_port()
 
+def on_reset_device_callback():
+    global serial_port
+    global current_port
+    global current_baudrate
 
-window = MainWindow(on_port_changed_callback, on_baudrate_changed_callback)
+    # Close if already open
+    if serial_port:
+        serial_port.close()
+
+    # Reset the device by re-opening Serial port
+    # with DTR and RTS enabled 
+    # 
+    # These are enabled by default
+    serial_port = serial.Serial(current_port, current_baudrate)
+
+    reopen_serial_port()
+
+window = MainWindow(on_port_changed_callback, on_baudrate_changed_callback, on_reset_device_callback)
 
 # Open serial comms
 current_port = window.port
@@ -93,6 +111,14 @@ def main():
 
         strdata = escape_ansi(strdata)
         strdata = strdata.strip()
+
+        # Append received data to GUI output
+        cursor = window.text_edit.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.insertText(strdata + "\n")
+        window.text_edit.setTextCursor(cursor)
+        window.text_edit.ensureCursorVisible()
+
         arrdata = strdata.split(",")
         print(arrdata)
 

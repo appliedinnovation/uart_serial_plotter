@@ -1,10 +1,12 @@
-import glob
-import sys
+import functools
 from numpy import empty
 import serial
 import serial.tools.list_ports
 from PyQt5 import QtGui
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
+    QActionGroup,
+    QMenu,
     QWidget,
     QPushButton,
     QLabel,
@@ -19,6 +21,8 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QSplitter,
     QScrollArea,
+    QTextEdit,
+    QVBoxLayout
 )
 from PyQt5.QtCore import (
     QFileInfo,
@@ -46,103 +50,15 @@ import csv
 
 class MainWindow(QMainWindow):
 
-    from menubar import menubar_init, menubar_add_menu, menu_add_action
-
-    from toolbar import (
-        toolbar_init,
-        toolbar_create,
-        toolbar_add_action,
-        toolbar_add_widget,
-        toolbar_add_separator,
-        toolbar_remove,
-    )
+    from menubar import menubar_init, menubar_add_menu, menubar_get_menu, menu_add_action
 
     def __init__(
-        self, on_port_changed_callback=None, on_baudrate_changed_callback=None
+        self, on_port_changed_callback=None, on_baudrate_changed_callback=None, on_reset_device_callback=None
     ):
         super().__init__()
 
         self.port = None
         self.baudrate = 115200
-        self.__init_ui__()
-        self.on_port_changed_callback = on_port_changed_callback
-        self.on_baudrate_changed_callback = on_baudrate_changed_callback
-
-    def __init_ui__(self):
-        QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
-
-        self.setStyleSheet("QLabel {font: 15pt} QPushButton {font: 15pt}")
-        self.setWindowTitle("UART Serial Plotter")
-
-        self.__init_actions__()
-        self.__init_port_selector_combo_box__()
-        self.__init_baudrate_selector_combo_box__()
-        self.__init_menubar__()
-        self.__init_toolbar__()
-
-        self.plot_page = pages.PlotPage()
-        self.plot_page.plot.plot_item.clear()
-
-        # main controls
-        self.setCentralWidget(self.plot_page)
-        self.setGeometry(0, 0, 1200, 1000)
-        self.center()
-        self.show()
-
-    def __init_actions__(self):
-        self.exitAction = Action(
-            resource.path("icons/toolbar/exit.png"), "Exit Plotter", self
-        )
-        self.exitAction.setShortcut("Ctrl+Q")
-        self.exitAction.setStatusTip("Exit application")
-        self.exitAction.triggered.connect(self.close)
-
-        self.refreshAction = Action(
-            resource.path("icons/toolbar/refresh.png"), "Refresh Serial Ports", self
-        )
-        self.refreshAction.setShortcut("Ctrl+R")
-        self.refreshAction.setStatusTip("Refresh Serial Port List")
-        self.refreshAction.triggered.connect(self.__refresh_ports__)
-
-        self.resetViewAction = Action(
-            resource.path("icons/toolbar/reset.png"), "Reset View", self
-        )
-        self.resetViewAction.setShortcut("Ctrl+]")
-        self.resetViewAction.setStatusTip("Reset View")
-        self.resetViewAction.triggered.connect(self.__reset_view__)
-
-        self.exportSceneAction = Action(
-            resource.path("icons/toolbar/export.png"), "Export scene", self
-        )
-        self.exportSceneAction.setShortcut("Ctrl+S")
-        self.exportSceneAction.setStatusTip("Export scene")
-        self.exportSceneAction.triggered.connect(self.__export_scene__)
-
-        self.importSceneAction = Action(
-            resource.path("icons/toolbar/import.png"), "Import scene from CSV", self
-        )
-        self.importSceneAction.setShortcut("Ctrl+O")
-        self.importSceneAction.setStatusTip("Import scene")
-        self.importSceneAction.triggered.connect(self.__import_scene__)
-
-    def __init_menubar__(self):
-        self.menubar_init()
-        self.menubar_add_menu("&File")
-        self.menu_add_action("&File", self.exitAction)
-        self.menu_add_action("&File", self.refreshAction)
-        self.menu_add_action("&File", self.resetViewAction)
-        self.menu_add_action("&File", self.exportSceneAction)
-        self.menu_add_action("&File", self.importSceneAction)
-
-    def __init_port_selector_combo_box__(self):
-        self.port_selector = QComboBox(self)
-        self.__refresh_ports__()
-        self.port_selector.activated[str].connect(self.__on_port_changed__)
-
-    def __init_baudrate_selector_combo_box__(self):
-        self.baudrate_selector = QComboBox(self)
-        self.baudrate_selector.clear()
-
         self.baudrate_values = [
             110,
             150,
@@ -160,62 +76,150 @@ class MainWindow(QMainWindow):
             921600,
         ]
 
-        self.baudrate_selector.addItems([str(b) for b in self.baudrate_values])
-        self.baudrate_selector.setCurrentIndex(
-            self.baudrate_values.index(self.baudrate)
-        )
-        self.baudrate_selector.activated[str].connect(self.__on_baudrate_changed__)
+        self.__init_ui__()
+        self.on_port_changed_callback = on_port_changed_callback
+        self.on_baudrate_changed_callback = on_baudrate_changed_callback
+        self.on_reset_device_callback = on_reset_device_callback
 
-    def __init_toolbar__(self):
-        self.toolbar_init()
-        self.toolbar_create("toolbar1")
-        self.toolbar_add_action("toolbar1", self.exitAction)
+    def __init_ui__(self):
+        QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
 
-        self.toolbar_add_separator("toolbar1")
-        self.toolbar_add_action("toolbar1", self.refreshAction)
-        self.toolbar_add_widget("toolbar1", QLabel(" Serial Port: "))
-        self.toolbar_add_widget("toolbar1", self.port_selector)
+        self.setStyleSheet("QLabel {font: 15pt} QPushButton {font: 15pt}")
+        self.setWindowTitle("UART Serial Plotter")
 
-        self.toolbar_add_separator("toolbar1")
-        self.toolbar_add_widget("toolbar1", QLabel(" Baud: "))
-        self.toolbar_add_widget("toolbar1", self.baudrate_selector)
+        self.__init_actions__()
+        self.__init_menubar__()
 
-        self.toolbar_add_separator("toolbar1")
-        self.toolbar_add_action("toolbar1", self.resetViewAction)
+        self.plot_page = pages.PlotPage()
+        self.plot_page.plot.plot_item.clear()
 
-        self.toolbar_add_separator("toolbar1")
-        self.toolbar_add_action("toolbar1", self.exportSceneAction)
+        self.text_edit = QTextEdit()
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        self.text_edit.setFont(font)
+        self.text_edit.setContentsMargins(100, 100, 100, 100)
 
-        self.toolbar_add_separator("toolbar1")
-        self.toolbar_add_action("toolbar1", self.importSceneAction)
+        splitter = QSplitter(QtCore.Qt.Vertical)
+        layout = QVBoxLayout()
+        splitter.addWidget(self.plot_page)
+        splitter.addWidget(self.text_edit)
+        splitter.setStretchFactor(1, 1)
+        layout.addWidget(splitter)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
+        self.setGeometry(0, 0, 1200, 1000)
+        self.center()
+        self.show()
+
+    def __init_actions__(self):
+        self.exitAction = Action(None, "Exit", self)
+        self.exitAction.setStatusTip("Exit")
+        self.exitAction.setShortcut("Ctrl+Q")
+        self.exitAction.triggered.connect(self.close)
+
+        self.refreshAction = Action(None, "Refresh", self)
+        self.refreshAction.setStatusTip("Refresh Serial Ports")
+        self.refreshAction.triggered.connect(self.__refresh_ports__)
+
+        self.resetDevice = Action(None, "Reset Device", self)
+        self.resetDevice.setStatusTip("Reset Device")
+        self.resetDevice.triggered.connect(self.__reset_device__)
+
+        self.resetViewAction = Action(None, "Reset View", self)
+        self.resetViewAction.setShortcut("Ctrl+R")
+        self.resetViewAction.triggered.connect(self.__reset_view__)
+
+        self.importSceneAction = Action(None, "Import from CSV", self)
+        self.importSceneAction.setShortcut("Ctrl+O")
+        self.importSceneAction.setStatusTip("Import scene")
+        self.importSceneAction.triggered.connect(self.__import_scene__)
+
+        self.exportSceneAction = Action(None, "Export...", self)
+        self.exportSceneAction.setShortcut("Ctrl+S")
+        self.exportSceneAction.setStatusTip("Export scene")
+        self.exportSceneAction.triggered.connect(self.__export_scene__)
+
+    def __init_menubar__(self):
+        self.menubar_init()
+        self.menubar_add_menu("&File")
+        self.menu_add_action("&File", self.exitAction)
+
+        self.menubar_add_menu("&Plot")
+        self.menu_add_action("&Plot", self.resetViewAction)
+        self.menu_add_action("&Plot", self.importSceneAction)
+        self.menu_add_action("&Plot", self.exportSceneAction)
+
+        self.menubar_add_menu("&Serial")
+        self.__refresh_ports__()
+
+    def __init_port_menu__(self):
+        serial_menu = self.menubar_get_menu("&Serial")
+        serial_menu.clear()
+        self.menu_add_action("&Serial", self.refreshAction)
+        ports_submenu = serial_menu.addMenu("&Port")
+
+        # Serial ports submenu
+        if len(self.serial_ports):
+            self.ports_action_group = QActionGroup(self)
+            for i in range(len(self.serial_ports)):
+                port_name = self.serial_ports[i]
+                action = ports_submenu.addAction("&" + str(port_name), functools.partial(self.__on_port_changed__, port_name))
+                action.setCheckable(True)
+                # Check the last serial port
+                if i == len(self.serial_ports) - 1:
+                    action.setChecked(True)
+                    self.port = self.serial_ports[i]
+                self.ports_action_group.addAction(action)
+            self.ports_action_group.setExclusive(True)
+        else:
+            ports_submenu.setEnabled(False)
+
+        self.__init_baudrate_menu__()
+        self.menu_add_action("&Serial", self.resetDevice)
+
+    def __init_baudrate_menu__(self):
+        serial_menu = self.menubar_get_menu("&Serial")
+        baudrate_submenu = serial_menu.addMenu("&Baud Rate")
+
+        self.baudrate_action_group = QActionGroup(self)
+        for baud in self.baudrate_values:
+            action = baudrate_submenu.addAction("&" + str(baud), functools.partial(self.__on_baudrate_changed__, baud))
+            action.setCheckable(True)
+            if baud == self.baudrate:
+                action.setChecked(True)
+            self.baudrate_action_group.addAction(action)
+        self.baudrate_action_group.setExclusive(True)
 
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
             self.port = newPort
-            self.on_port_changed_callback(self.port)
+        self.on_port_changed_callback(self.port)
 
     def __on_baudrate_changed__(self, newBaudRate):
+        print(newBaudRate)
         if newBaudRate != self.baudrate:
             self.baudrate = newBaudRate
-            self.on_baudrate_changed_callback(int(self.baudrate))
+        self.on_baudrate_changed_callback(int(self.baudrate))
 
     def __refresh_ports__(self):
         self.serial_ports = list_serial_ports()
-        self.port_selector.clear()
-        self.port_selector.addItems(self.serial_ports)
-        if self.port is None and len(self.serial_ports):
-            self.port = self.serial_ports[-1]
-        if self.port is not None and len(self.serial_ports):
-            self.port_selector.setCurrentIndex(self.serial_ports.index(self.port))
-        else:
-            self.port_selector.setCurrentIndex(-1)
+        self.__init_port_menu__()
+
+    def __reset_device__(self):
+        if self.on_reset_device_callback:
+            self.on_reset_device_callback()
 
     def __reset_view__(self):
         self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
 
     def __export_scene__(self):
-        e = exportDialog.ExportDialog(self.plot_page.plot.canvas.plotItem.scene())
-        e.show(self.plot_page.plot.canvas.plotItem)
+        try:
+            e = exportDialog.ExportDialog(self.plot_page.plot.canvas.plotItem.scene())
+            e.show(self.plot_page.plot.canvas.plotItem)
+        except:
+            pass
 
     def __import_scene__(self):
         dialog = QFileDialog()

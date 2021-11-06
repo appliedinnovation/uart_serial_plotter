@@ -15,6 +15,13 @@ def menubar_add_menu(self, menu_name):
     if dict_name not in self.menus:
         self.menus[dict_name] = self.menubar.addMenu(menu_name)
 
+def menubar_get_menu(self, menu_name):
+    """
+    :param in string menu_name: name of the menu, shortcut (denoted by &) optional (note that the & will be stripped)
+    """
+    dict_name = menu_name.strip("&")
+    return self.menus[dict_name]
+
 
 def menu_add_action(self, menu_name, menu_action):
     """
