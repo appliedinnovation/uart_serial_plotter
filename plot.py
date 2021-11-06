@@ -22,6 +22,7 @@ class Plot(object):
         self.legend = self.canvas.addLegend()
 
     def set_header(self, header_names):
+        self.legend.clear()
         self.trace_names = header_names
         for i, name in enumerate(self.trace_names):
             if name in self.traces:

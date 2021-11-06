@@ -1,5 +1,6 @@
 import glob
 import sys
+from numpy import empty
 import serial
 import serial.tools.list_ports
 from PyQt5 import QtGui
@@ -14,6 +15,7 @@ from PyQt5.QtWidgets import (
     QDesktopWidget,
     QMessageBox,
     QErrorMessage,
+    QDialog,
     QFileDialog,
     QSplitter,
     QScrollArea,
@@ -39,6 +41,7 @@ import resource
 import pages
 from list_serial_ports import list_serial_ports
 from pager import Pager
+import csv
 
 
 class MainWindow(QMainWindow):
@@ -109,6 +112,13 @@ class MainWindow(QMainWindow):
         self.exportSceneAction.setStatusTip("Export scene")
         self.exportSceneAction.triggered.connect(self.__export_scene__)
 
+        self.importSceneAction = Action(
+            resource.path("icons/toolbar/import.png"), "Import scene from CSV", self
+        )
+        self.importSceneAction.setShortcut("Ctrl+O")
+        self.importSceneAction.setStatusTip("Import scene")
+        self.importSceneAction.triggered.connect(self.__import_scene__)
+
     def __init_menubar__(self):
         self.menubar_init()
         self.menubar_add_menu("&File")
@@ -116,6 +126,7 @@ class MainWindow(QMainWindow):
         self.menu_add_action("&File", self.refreshAction)
         self.menu_add_action("&File", self.resetViewAction)
         self.menu_add_action("&File", self.exportSceneAction)
+        self.menu_add_action("&File", self.importSceneAction)
 
     def __init_port_selector_combo_box__(self):
         self.port_selector = QComboBox(self)
@@ -137,6 +148,9 @@ class MainWindow(QMainWindow):
 
         self.toolbar_add_separator("toolbar1")
         self.toolbar_add_action("toolbar1", self.exportSceneAction)
+
+        self.toolbar_add_separator("toolbar1")
+        self.toolbar_add_action("toolbar1", self.importSceneAction)
 
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
@@ -160,6 +174,41 @@ class MainWindow(QMainWindow):
     def __export_scene__(self):
         e = exportDialog.ExportDialog(self.plot_page.plot.canvas.plotItem.scene())
         e.show(self.plot_page.plot.canvas.plotItem)
+
+    def __import_scene__(self):
+        dialog = QFileDialog()
+        fmt = "csv"
+        dialog.setDefaultSuffix(fmt)
+        dialog.setNameFilters([f'{fmt} (*.{fmt})'])
+
+        if dialog.exec_() == QDialog.Accepted:
+            path = dialog.selectedFiles()[0]
+            with open(path, 'r') as csvfile:
+                reader = csv.reader(csvfile)
+
+                # Parse Header 
+                # Expected: "Foo_x","Foo_y","Bar_x","Bar_y",...
+                # Convert to: "Foo","Bar",...
+                header = ["_".join(h.strip().split("_")[:-1]) for h in next(reader)]
+                header = list(dict.fromkeys(header))
+                header.insert(0, "Time")
+
+                # Clear existing plot and set new header
+                self.plot_page.plot.plot_item.clear()
+                self.plot_page.plot.traces = {}
+                self.plot_page.plot.trace_names = []
+                self.plot_page.plot.data = {}
+                self.plot_page.plot.set_header(header)
+
+                dataset = []
+                for row in reader:
+                    time = float(row[0])
+                    signals = [float(x) for x in row[1::2]]
+                    data = []
+                    data.append(time)
+                    data.extend(signals)
+                    dataset.append(data)
+                self.plot_page.plot.update_data(dataset)
 
     # window functions
     def center(self):
