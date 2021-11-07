@@ -165,6 +165,7 @@ def main():
 
         if is_header:
             # an array of strings
+            window.__clear_plot__()
             window.plot_page.plot.set_header(arrdata)
         else:
             # an array of numbers

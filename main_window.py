@@ -177,33 +177,16 @@ class MainWindow(QMainWindow):
         self.resetDevice.setStatusTip("Reset Device")
         self.resetDevice.triggered.connect(self.__reset_device__)
 
-        self.rescaleAxesAction = Action(None, "Rescale Axes", self)
-        self.rescaleAxesAction.setShortcut("Ctrl+R")
-        self.rescaleAxesAction.triggered.connect(self.__rescale_axes__)
-
-        self.clearPlotAction = Action(None, "Clear Plot", self)
-        self.clearPlotAction.triggered.connect(self.__clear_plot__)
-
-        self.importSceneAction = Action(None, "Import from CSV", self)
+        self.importSceneAction = Action(None, "Open", self)
         self.importSceneAction.setShortcut("Ctrl+O")
-        self.importSceneAction.setStatusTip("Import scene")
+        self.importSceneAction.setStatusTip("Import scene from CSV")
         self.importSceneAction.triggered.connect(self.__import_scene__)
-
-        self.exportSceneAction = Action(None, "Export...", self)
-        self.exportSceneAction.setShortcut("Ctrl+S")
-        self.exportSceneAction.setStatusTip("Export scene")
-        self.exportSceneAction.triggered.connect(self.__export_scene__)
 
     def __init_menubar__(self):
         self.menubar_init()
         self.menubar_add_menu("&File")
         self.menu_add_action("&File", self.importSceneAction)
-        self.menu_add_action("&File", self.exportSceneAction)
         self.menu_add_action("&File", self.exitAction)
-
-        self.menubar_add_menu("&View")
-        self.menu_add_action("&View", self.rescaleAxesAction)
-        self.menu_add_action("&View", self.clearPlotAction)
 
         self.menubar_add_menu("&Serial")
         self.__refresh_ports__()
@@ -279,22 +262,11 @@ class MainWindow(QMainWindow):
         if self.on_reset_device_callback:
             self.on_reset_device_callback()
 
-    def __rescale_axes__(self):
-        self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
-        self.plot_page.plot.canvas.getPlotItem().setAutoVisible(x=True,y=True)
-
     def __clear_plot__(self):
         self.plot_page.plot.plot_item.clear()
         self.plot_page.plot.traces = {}
         self.plot_page.plot.trace_names = []
         self.plot_page.plot.data = {}
-
-    def __export_scene__(self):
-        try:
-            e = exportDialog.ExportDialog(self.plot_page.plot.canvas.plotItem.scene())
-            e.show() # self.plot_page.plot.canvas.plotItem)
-        except:
-            pass
 
     def __import_scene__(self):
         dialog = QFileDialog()
