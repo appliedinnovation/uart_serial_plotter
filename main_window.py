@@ -100,17 +100,6 @@ class MainWindow(QMainWindow):
         fontDatabase = QtGui.QFontDatabase()
         families = fontDatabase.families()
 
-        self.setWindowTitle("UART Serial Plotter")
-
-        self.__init_actions__()
-        self.__init_menubar__()
-
-        self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
-
-        self.plot_page = pages.PlotPage()
-        self.plot_page.plot.plot_item.clear()
-
-        self.output_editor = QTextEdit()
         desired_font = "Consolas"
         font = None
         if desired_font in families:
@@ -119,8 +108,10 @@ class MainWindow(QMainWindow):
             font = QtGui.QFont("Monospace")
         font.setStyleHint(QtGui.QFont.System)
         font.setPointSize(10)
-        self.output_editor.setFont(font)
-        self.output_editor.setStyleSheet(
+
+        self.log_editor = QTextEdit()
+        self.log_editor.setFont(font)
+        self.log_editor.setStyleSheet(
             "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
             "QScrollBar {background: rgb(74,73,73); height: 0px; width: 0px; }"
             "QScrollBar::handle:vertical {"
@@ -137,9 +128,19 @@ class MainWindow(QMainWindow):
             "}"
         )
 
-        self.log_editor = QTextEdit()
-        self.log_editor.setFont(font)
-        self.log_editor.setStyleSheet(
+        self.setWindowTitle("UART Serial Plotter")
+
+        self.__init_actions__()
+        self.__init_menubar__()
+
+        self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
+
+        self.plot_page = pages.PlotPage()
+        self.plot_page.plot.plot_item.clear()
+
+        self.output_editor = QTextEdit()
+        self.output_editor.setFont(font)
+        self.output_editor.setStyleSheet(
             "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
             "QScrollBar {background: rgb(74,73,73); height: 0px; width: 0px; }"
             "QScrollBar::handle:vertical {"
@@ -285,18 +286,20 @@ class MainWindow(QMainWindow):
         self.on_port_changed_callback(self.port)
 
     def __on_baudrate_changed__(self, newBaudRate):
-        print(newBaudRate)
         if newBaudRate != self.baudrate:
             self.baudrate = newBaudRate
         self.on_baudrate_changed_callback(int(self.baudrate))
 
     def __refresh_ports__(self):
+        self.log_info("Refreshing serial ports")
         self.serial_ports = list_serial_ports()
         self.__init_port_menu__()
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
+            self.log_info("No serial ports detected")
         else:
             self.resetDevice.setEnabled(True)
+            self.log_info("One or more serial ports detected")
 
     def __reset_device__(self):
         if self.on_reset_device_callback:
@@ -339,6 +342,7 @@ class MainWindow(QMainWindow):
                     data.extend(signals)
                     dataset.append(data)
                 self.plot_page.plot.update_data(dataset)
+                self.log_info("Successfully imported from '{}'".format(path))
 
     # window functions
     def center(self):
