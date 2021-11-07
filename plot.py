@@ -31,24 +31,18 @@ class Plot(object):
             (255, 53, 78),
             # Neon Green
             (31, 255, 15),
+            # Picton Blue
+            (68, 204, 255),
             # Neon yellow
             (255, 240, 31),
             # Neon Pink
             (255, 68, 204),
-            # Picton Blue
-            (68, 204, 255),
-            # Neon purple
-            (176, 38, 255),
             # Neon orange
             (247, 149, 72),
-            # Neon Lavender
-            (234, 157, 255),
-            # Neon teal
-            (0, 202, 177),
         ]
 
-        # return pg.mkPen(index, len(self.trace_names))
-        return pg.mkPen(COLORS[index % len(COLORS)])
+        return pg.mkPen(index, len(self.trace_names))
+        # return pg.mkPen(COLORS[index % len(COLORS)])
 
     def set_header(self, header_names):
         self.legend.clear()
