@@ -114,7 +114,6 @@ def on_usb_device_removal():
     window.__refresh_ports__()
 
 
-
 def main():
     w = UsbDeviceChangeMonitor(on_usb_device_arrival, on_usb_device_removal)
 

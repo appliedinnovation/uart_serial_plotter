@@ -13,8 +13,8 @@ class Plot(object):
         self.canvas = pg.PlotWidget()
         self.plot = None
         self.canvas.showGrid(x=True, y=True)
-        self.canvas.getAxis('left').setTextPen('w')
-        self.canvas.getAxis('bottom').setTextPen('w')
+        self.canvas.getAxis("left").setTextPen("w")
+        self.canvas.getAxis("bottom").setTextPen("w")
         self.plot_item = self.canvas.getPlotItem()
 
         if header:
@@ -26,15 +26,15 @@ class Plot(object):
 
     def get_pen(self, index):
         COLORS = [
-            "FBFFFF", # Neon White
-            "F79548", # Bright Neon Orange
-            "83EEFF", # Neon Light Blue
-            "72BF44", # Neon Green
-            "FFC42E", # Neon Gold
-            "B026FF", # Neon Purple
-            "BAB9B9", # Comfort Gray
-            "F72119", # Neon Red
-            "FF0EF3", # Neon Fuchsia
+            "FBFFFF",  # Neon White
+            "F79548",  # Bright Neon Orange
+            "83EEFF",  # Neon Light Blue
+            "72BF44",  # Neon Green
+            "FFC42E",  # Neon Gold
+            "B026FF",  # Neon Purple
+            "BAB9B9",  # Comfort Gray
+            "F72119",  # Neon Red
+            "FF0EF3",  # Neon Fuchsia
         ]
 
         # return pg.mkPen(index, len(self.trace_names))
@@ -49,8 +49,8 @@ class Plot(object):
             else:
                 self.traces[name] = self.canvas.plot(
                     pen=self.get_pen(i),
-                    # (i, len(self.trace_names)), 
-                    name=name
+                    # (i, len(self.trace_names)),
+                    name=name,
                 )
 
     def update_data(self, data):
@@ -76,6 +76,6 @@ class Plot(object):
         else:
             self.traces[name] = self.canvas.plot(
                 pen=self.get_pen(len(self.trace_names)),
-                # pen=(len(self.trace_names), len(self.trace_names)), 
-                name=name
+                # pen=(len(self.trace_names), len(self.trace_names)),
+                name=name,
             )

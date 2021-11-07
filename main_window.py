@@ -27,7 +27,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QStatusBar,
-    QTabWidget
+    QTabWidget,
 )
 from PyQt5.QtCore import (
     QFileInfo,
@@ -141,7 +141,7 @@ class MainWindow(QMainWindow):
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.text_edit, "Output")
-        self.tabs.setTabText(0,"Output")
+        self.tabs.setTabText(0, "Output")
         self.tabs.setStyleSheet(
             "QTabBar::tab:selected {background: white; color: black;}"
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
