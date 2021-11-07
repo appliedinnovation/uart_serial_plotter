@@ -51,7 +51,7 @@ import pages
 from list_serial_ports import list_serial_ports
 from pager import Pager
 import csv
-
+from tabs import Tabs
 
 class MainWindow(QMainWindow):
 
@@ -110,7 +110,7 @@ class MainWindow(QMainWindow):
         self.plot_page = pages.PlotPage()
         self.plot_page.plot.plot_item.clear()
 
-        self.text_edit = QTextEdit()
+        self.output_editor = QTextEdit()
         desired_font = "Consolas"
         font = None
         if desired_font in families:
@@ -119,8 +119,8 @@ class MainWindow(QMainWindow):
             font = QtGui.QFont("Monospace")
         font.setStyleHint(QtGui.QFont.System)
         font.setPointSize(10)
-        self.text_edit.setFont(font)
-        self.text_edit.setStyleSheet(
+        self.output_editor.setFont(font)
+        self.output_editor.setStyleSheet(
             "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
             "QScrollBar {background: rgb(74,73,73); height: 0px; width: 0px; }"
             "QScrollBar::handle:vertical {"
@@ -137,11 +137,30 @@ class MainWindow(QMainWindow):
             "}"
         )
 
-        self.log = QTextEdit()
+        self.log_editor = QTextEdit()
+        self.log_editor.setFont(font)
+        self.log_editor.setStyleSheet(
+            "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
+            "QScrollBar {background: rgb(74,73,73); height: 0px; width: 0px; }"
+            "QScrollBar::handle:vertical {"
+            "    background: rgb(74,73,73);"
+            "}"
+            "QScrollBar::add-line:vertical {"
+            "    border: none;"
+            "    background: rgb(74,73,73);"
+            "}"
+            ""
+            "QScrollBar::sub-line:vertical {"
+            "    border: none;"
+            "    background: none;"
+            "}"
+        )
 
-        self.tabs = QTabWidget()
-        self.tabs.addTab(self.text_edit, "Output")
+        self.tabs = Tabs(self)
+        self.tabs.addTab(self.output_editor, "Output")
         self.tabs.setTabText(0, "Output")
+        self.tabs.addTab(self.log_editor, "Log")
+        self.tabs.setTabText(1, "Log")
         self.tabs.setStyleSheet(
             "QTabBar::tab:selected {background: white; color: black;}"
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
@@ -238,6 +257,27 @@ class MainWindow(QMainWindow):
                 action.setChecked(True)
             self.baudrate_action_group.addAction(action)
         self.baudrate_action_group.setExclusive(True)
+
+    def log(self, color, msg):
+        # Append received data to log window
+        cursor = self.log_editor.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.insertHtml(
+            """
+            <div style='color:{};'>
+            {}
+            <br/>
+            </div>""".format(color, msg)
+        )
+
+    def log_error(self, msg):
+        self.log("#FF073A", msg)
+
+    def log_warning(self, msg):
+        self.log("#FFC42E", msg)
+
+    def log_info(self, msg):
+        self.log("white", msg)
 
     def __on_port_changed__(self, newPort):
         if newPort != self.port:

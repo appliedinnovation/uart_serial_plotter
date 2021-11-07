@@ -101,16 +101,19 @@ window = MainWindow(
 current_port = window.port
 current_baudrate = window.baudrate
 if current_port:
+    window.log_info("Current port: " + str(current_port))
     reopen_serial_port()
+else:
+    window.log_error("No device connected")
 
 
 def on_usb_device_arrival():
-    print("Detected New USB Device")
+    window.log_info("Detected New USB Device")
     window.__refresh_ports__()
 
 
 def on_usb_device_removal():
-    print("Detected USB Device Removal")
+    window.log_info("Detected USB Device Removal")
     window.__refresh_ports__()
 
 
@@ -142,12 +145,12 @@ def main():
         strdata = strdata.strip()
 
         # Append received data to GUI output window
-        cursor = window.text_edit.textCursor()
+        cursor = window.output_editor.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
 
         cursor.insertText(strdata + "\n")
-        window.text_edit.setTextCursor(cursor)
-        window.text_edit.ensureCursorVisible()
+        window.output_editor.setTextCursor(cursor)
+        window.output_editor.ensureCursorVisible()
 
         arrdata = strdata.split(",")
 
