@@ -1,6 +1,7 @@
 import functools
 from numpy import empty
 from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem
+import pyqtgraph.exporters
 import serial
 import serial.tools.list_ports
 from PyQt5 import QtGui
@@ -141,8 +142,6 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget()
         self.tabs.addTab(self.text_edit, "Output")
         self.tabs.setTabText(0,"Output")
-        # self.tabs.addTab(self.log, "Log")
-        # self.tabs.setTabText(1,"Log")
         self.tabs.setStyleSheet(
             "QTabBar::tab:selected {background: white; color: black;}"
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
@@ -150,16 +149,11 @@ class MainWindow(QMainWindow):
         )
         self.tabs.setFont(font)
 
-        # self.statusBar = QStatusBar()
-        # self.statusBar.setFont(font)
-        # self.statusBar.setStyleSheet("QStatusBar { text-align: right; background-color: rgb(27,27,28); padding-left: 20px; }")
-
         splitter = QSplitter(QtCore.Qt.Vertical)
         layout = QVBoxLayout()
         splitter.setStyleSheet("QWidget {background: rgb(27, 27, 28);}")
         splitter.addWidget(self.plot_page)
         splitter.addWidget(self.tabs)
-        # splitter.addWidget(self.statusBar)
         layout.addWidget(splitter)
 
         widget = QWidget()
@@ -286,8 +280,8 @@ class MainWindow(QMainWindow):
             self.on_reset_device_callback()
 
     def __rescale_axes__(self):
-        self.plot_page.plot.canvas.getPlotItem().disableAutoRange()
-        self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
+        self.plot_page.plot.canvas.getPlotItem().enableAutoRange(axis='y')
+        self.plot_page.plot.canvas.getPlotItem().setAutoVisible(y=True)
 
     def __clear_plot__(self):
         self.plot_page.plot.plot_item.clear()

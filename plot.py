@@ -37,17 +37,8 @@ class Plot(object):
             "FF0EF3", # Neon Fuchsia
         ]
 
-        PEN_STYLES = [
-            QtCore.Qt.SolidLine,
-            QtCore.Qt.DashLine,
-            QtCore.Qt.DotLine,
-            QtCore.Qt.DashDotLine,
-            QtCore.Qt.DashDotDotLine,
-            QtCore.Qt.CustomDashLine
-        ]
-
         # return pg.mkPen(index, len(self.trace_names))
-        return pg.mkPen(COLORS[index % len(COLORS)], width=2, style=PEN_STYLES[index % len(PEN_STYLES)])
+        return pg.mkPen(COLORS[index % len(COLORS)])
 
     def set_header(self, header_names):
         self.legend.clear()
