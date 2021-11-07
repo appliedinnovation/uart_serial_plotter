@@ -49,9 +49,11 @@ def reopen_serial_port():
     # Close if already open
     if serial_port:
         serial_port.close()
+        window.log_info("Closed serial port")
 
     # Open serial_port
     if current_port and current_baudrate:
+        window.log_info("Opening serial port {}, baud={}".format(current_port, current_baudrate))
         serial_port = serial.Serial()
         serial_port.port = current_port
         serial_port.baudrate = current_baudrate
@@ -60,9 +62,9 @@ def reopen_serial_port():
         serial_port.setDTR(False)
         serial_port.open()
 
-
 def on_port_changed_callback(port):
     global current_port
+    window.log_info("Serial port changed to {}".format(port))
     current_port = port
     reopen_serial_port()
 
@@ -70,6 +72,7 @@ def on_port_changed_callback(port):
 def on_baudrate_changed_callback(baudrate):
     global current_port
     global current_baudrate
+    window.log_info("Serial port baud rate changed to {}".format(baudrate))
     current_baudrate = baudrate
     if current_port:
         reopen_serial_port()
@@ -80,6 +83,7 @@ def on_reset_device_callback():
     global current_port
     global current_baudrate
     global window
+    window.log_info("Toggling DTR/RTS for device at serial port {}".format(current_port))
 
     # Close if already open
     if serial_port:
