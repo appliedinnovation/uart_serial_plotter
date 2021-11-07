@@ -36,6 +36,7 @@ current_port = None
 current_baudrate = None
 
 app = QApplication(sys.argv)
+app.setWindowIcon(QtGui.QIcon("./images/icon.png"))
 window = None
 
 
