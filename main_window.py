@@ -1,9 +1,22 @@
 import functools
 from numpy import empty
 from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem
-import pyqtgraph.exporters
+import re
 import serial
 import serial.tools.list_ports
+
+import sys
+
+if sys.platform.startswith("win"):
+    from usb_device_listener_windows import UsbDeviceChangeMonitor
+elif sys.platform.startswith("linux"):
+    # not implemented
+    pass
+else:
+    raise ImportError(
+        "This module does not support this platform '{}'".format(sys.platform)
+    )
+
 from PyQt5 import QtGui
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
@@ -53,6 +66,7 @@ from pager import Pager
 import csv
 from tabs import Tabs
 
+
 class MainWindow(QMainWindow):
 
     from menubar import (
@@ -62,14 +76,10 @@ class MainWindow(QMainWindow):
         menu_add_action,
     )
 
-    def __init__(
-        self,
-        on_port_changed_callback=None,
-        on_baudrate_changed_callback=None,
-        on_reset_device_callback=None,
-    ):
+    def __init__(self):
         super().__init__()
 
+        self.serial_port = None
         self.port = None
         self.baudrate = 115200
         self.baudrate_values = [
@@ -89,44 +99,65 @@ class MainWindow(QMainWindow):
             921600,
         ]
 
-        self.on_port_changed_callback = on_port_changed_callback
-        self.on_baudrate_changed_callback = on_baudrate_changed_callback
-        self.on_reset_device_callback = on_reset_device_callback
         self.__init_ui__()
 
-    def __init_ui__(self):
-        QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
+        # At this point, the menubar is initialized
+        # which would've called __refresh_ports__()
+        #
+        # If there is a port, open it
+        if self.port:
+            self.log_info("Current port: " + str(self.port))
+            self.__reopen_serial_port__()
+        else:
+            self.log_warning("No device connected")
 
+        UsbDeviceChangeMonitor(
+            self.__on_usb_device_arrival__, self.__on_usb_device_removal__
+        )
+
+        self.update_timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
+        self.update_timer.timeout.connect(self.__update_plot__)
+        self.update_timer.start(20)
+
+    def __init_font__(self):
         fontDatabase = QtGui.QFontDatabase()
         families = fontDatabase.families()
 
         desired_font = "Consolas"
-        font = None
+        self.font = None
         if desired_font in families:
-            font = QtGui.QFont(desired_font)
+            self.font = QtGui.QFont(desired_font)
         else:
-            font = QtGui.QFont("Monospace")
-        font.setStyleHint(QtGui.QFont.System)
-        font.setPointSize(10)
+            self.font = QtGui.QFont("Monospace")
+        self.font.setStyleHint(QtGui.QFont.System)
+        self.font.setPointSize(10)
 
+    def __get_editor_stylesheet__(self):
+        return """
+        QTextEdit {
+            background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);
+        }
+        QScrollBar {
+            background: rgb(74,73,73); height: 0px; width: 0px; 
+        }
+        QScrollBar::handle:vertical {
+            background: rgb(74,73,73);
+        }
+        QScrollBar::add-line:vertical {
+            border: none;
+            background: rgb(74,73,73);
+        }
+        QScrollBar::sub-line:vertical {
+            border: none;
+            background: none;
+        }"""
+
+    def __init_ui__(self):
+        QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
+        self.__init_font__()
         self.log_editor = QTextEdit()
-        self.log_editor.setFont(font)
-        self.log_editor.setStyleSheet(
-            "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
-            "QScrollBar {background: rgb(74,73,73); height: 0px; width: 0px; }"
-            "QScrollBar::handle:vertical {"
-            "    background: rgb(74,73,73);"
-            "}"
-            "QScrollBar::add-line:vertical {"
-            "    border: none;"
-            "    background: rgb(74,73,73);"
-            "}"
-            ""
-            "QScrollBar::sub-line:vertical {"
-            "    border: none;"
-            "    background: none;"
-            "}"
-        )
+        self.log_editor.setFont(self.font)
+        self.log_editor.setStyleSheet(self.__get_editor_stylesheet__())
 
         self.setWindowTitle("UART Serial Plotter")
 
@@ -137,25 +168,12 @@ class MainWindow(QMainWindow):
 
         self.plot_page = pages.PlotPage()
         self.plot_page.plot.plot_item.clear()
+        self.plot_page.plot.canvas.getAxis("left").tickFont = self.font
+        self.plot_page.plot.canvas.getAxis("bottom").tickFont = self.font
 
         self.output_editor = QTextEdit()
-        self.output_editor.setFont(font)
-        self.output_editor.setStyleSheet(
-            "QTextEdit {background: rgb(27,27,28); border-color: gray; color: rgb(255, 255, 255);}"
-            "QScrollBar {background: rgb(74,73,73); height: 0px; width: 0px; }"
-            "QScrollBar::handle:vertical {"
-            "    background: rgb(74,73,73);"
-            "}"
-            "QScrollBar::add-line:vertical {"
-            "    border: none;"
-            "    background: rgb(74,73,73);"
-            "}"
-            ""
-            "QScrollBar::sub-line:vertical {"
-            "    border: none;"
-            "    background: none;"
-            "}"
-        )
+        self.output_editor.setFont(self.font)
+        self.output_editor.setStyleSheet(self.__get_editor_stylesheet__())
 
         self.tabs = Tabs(self)
         self.tabs.addTab(self.output_editor, "Output")
@@ -167,7 +185,7 @@ class MainWindow(QMainWindow):
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
             "QTabWidget:pane {border: 1px solid gray;}"
         )
-        self.tabs.setFont(font)
+        self.tabs.setFont(self.font)
 
         splitter = QSplitter(QtCore.Qt.Vertical)
         layout = QVBoxLayout()
@@ -180,7 +198,7 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-        self.center()
+        self.__center_window__()
         self.showMaximized()
 
     def __init_actions__(self):
@@ -232,8 +250,7 @@ class MainWindow(QMainWindow):
                 if i == len(self.serial_ports) - 1:
                     action.setChecked(True)
                     self.port = self.serial_ports[i]
-                    if self.on_port_changed_callback:
-                        self.on_port_changed_callback(self.port)
+                    self.__on_port_changed__(self.port)
                 self.ports_action_group.addAction(action)
             self.ports_action_group.setExclusive(True)
         else:
@@ -268,7 +285,9 @@ class MainWindow(QMainWindow):
             <div style='color:{};'>
             {}
             <br/>
-            </div>""".format(color, msg)
+            </div>""".format(
+                color, msg
+            )
         )
 
     def log_error(self, msg):
@@ -283,12 +302,12 @@ class MainWindow(QMainWindow):
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
             self.port = newPort
-        self.on_port_changed_callback(self.port)
+        self.__reopen_serial_port__()
 
     def __on_baudrate_changed__(self, newBaudRate):
         if newBaudRate != self.baudrate:
             self.baudrate = newBaudRate
-        self.on_baudrate_changed_callback(int(self.baudrate))
+        self.__reopen_serial_port__()
 
     def __refresh_ports__(self):
         self.log_info("Refreshing serial ports")
@@ -302,8 +321,18 @@ class MainWindow(QMainWindow):
             self.log_info("One or more serial ports detected")
 
     def __reset_device__(self):
-        if self.on_reset_device_callback:
-            self.on_reset_device_callback()
+        self.log_info("Toggling DTR/RTS for device at serial port {}".format(self.port))
+
+        # Close if already open
+        if self.serial_port:
+            self.serial_port.close()
+
+        # Reset the device by re-opening Serial port
+        # with DTR and RTS enabled
+        #
+        # These are enabled by default
+        self.serial_port = serial.Serial(self.port, self.baudrate)
+        self.__reopen_serial_port__()
 
     def __clear_plot__(self):
         self.plot_page.plot.plot_item.clear()
@@ -345,8 +374,98 @@ class MainWindow(QMainWindow):
                 self.log_info("Successfully imported from '{}'".format(path))
 
     # window functions
-    def center(self):
+    def __center_window__(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def __reopen_serial_port__(self):
+        # Close if already open
+        if self.serial_port:
+            self.serial_port.close()
+            self.log_info("Closed serial port")
+
+        # Open serial_port
+        if self.port and self.baudrate:
+            self.log_info(
+                "Opening serial port {}, baud={}".format(self.port, self.baudrate)
+            )
+            self.serial_port = serial.Serial()
+            self.serial_port.port = self.port
+            self.serial_port.baudrate = self.baudrate
+            # Disable hardware flow control
+            self.serial_port.setRTS(False)
+            self.serial_port.setDTR(False)
+            self.serial_port.open()
+
+    def __update_plot__(self):
+        def escape_ansi(line):
+            ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
+            return ansi_escape.sub("", str(line))
+
+        if not self.serial_port:
+            return
+
+        try:
+            if self.serial_port.inWaiting() == 0:
+                return  # do nothing
+        except:
+            return
+
+        # read a line from serial port
+        strdata = self.serial_port.readline()
+
+        # and decode it
+        if sys.version_info >= (3, 0):
+            strdata = strdata.decode("utf-8", "backslashreplace")
+
+        strdata = escape_ansi(strdata)
+        strdata = strdata.strip()
+
+        # Append received data to GUI output window
+        cursor = self.output_editor.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+
+        cursor.insertText(strdata + "\n")
+        self.output_editor.setTextCursor(cursor)
+        self.output_editor.ensureCursorVisible()
+
+        arrdata = strdata.split(",")
+
+        # return if there was not a comma
+        if len(arrdata) < 5:
+            return
+
+        # determine if this line is a header or not (first value is string data)
+        is_header = False
+        try:
+            dummy = float(arrdata[0])
+        except ValueError:
+            is_header = True
+
+        if is_header:
+            # an array of strings
+            self.__clear_plot__()
+            self.plot_page.plot.set_header(arrdata)
+        else:
+            # an array of numbers
+            datapoint = [float(x.strip()) for x in arrdata]
+
+            if len(self.plot_page.plot.trace_names) == 0:
+                # Header not set
+                # Maybe we didn't receive it over UART
+                # Set the Header to be: "Time","Signal_1", "Signal_2",...
+                header = ["Time"]
+                header.extend(["Signal_" + str(i) for i in range(len(datapoint))])
+                self.plot_page.plot.set_header(header)
+
+            self.plot_page.plot.update_data([datapoint])
+
+    def __on_usb_device_arrival__(self):
+        self.log_info("Detected New USB Device")
+        self.__refresh_ports__()
+
+    def __on_usb_device_removal__(self):
+        self.log_info("Detected USB Device Removal")
+        self.__refresh_ports__()

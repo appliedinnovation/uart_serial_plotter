@@ -1,7 +1,7 @@
 import pyqtgraph as pg
 import numpy as np
 from PyQt5.QtWidgets import QGraphicsView
-from PyQt5 import QtCore
+from PyQt5 import QtGui
 
 
 class Plot(object):

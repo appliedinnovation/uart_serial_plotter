@@ -4,6 +4,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 
+
 class Tabs(QTabWidget):
     def __init__(self, parent):
         super().__init__(parent)
@@ -25,16 +26,15 @@ class Tabs(QTabWidget):
         tabRect = tabBar.tabRect(self.indexTab)
 
         pixmap = QPixmap(tabRect.size())
-        tabBar.render(pixmap,QPoint(),QRegion(tabRect))
+        tabBar.render(pixmap, QPoint(), QRegion(tabRect))
         mimeData = QMimeData()
         drag = QDrag(tabBar)
         drag.setMimeData(mimeData)
         drag.setPixmap(pixmap)
         cursor = QCursor(Qt.OpenHandCursor)
         drag.setHotSpot(e.pos() - posInTab)
-        drag.setDragCursor(cursor.pixmap(),Qt.MoveAction)
+        drag.setDragCursor(cursor.pixmap(), Qt.MoveAction)
         dropAction = drag.exec_(Qt.MoveAction)
-
 
     def dragEnterEvent(self, e):
         e.accept()
@@ -44,10 +44,8 @@ class Tabs(QTabWidget):
         print(self.indexOf(self.widget(self.indexTab)))
         self.parent.TABINDEX = self.indexOf(self.widget(self.indexTab))
 
-
-    def dragLeaveEvent(self,e):
+    def dragLeaveEvent(self, e):
         e.accept()
-
 
     def dropEvent(self, e):
         print(self.parent.TABINDEX)
@@ -59,6 +57,13 @@ class Tabs(QTabWidget):
         counter = self.count()
 
         if counter == 0:
-            self.addTab(e.source().parentWidget().widget(self.parent.TABINDEX),e.source().tabText(self.parent.TABINDEX))
+            self.addTab(
+                e.source().parentWidget().widget(self.parent.TABINDEX),
+                e.source().tabText(self.parent.TABINDEX),
+            )
         else:
-            self.insertTab(counter + 1 ,e.source().parentWidget().widget(self.parent.TABINDEX),e.source().tabText(self.parent.TABINDEX))
+            self.insertTab(
+                counter + 1,
+                e.source().parentWidget().widget(self.parent.TABINDEX),
+                e.source().tabText(self.parent.TABINDEX),
+            )
