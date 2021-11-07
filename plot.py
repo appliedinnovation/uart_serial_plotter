@@ -1,6 +1,7 @@
 import pyqtgraph as pg
 import numpy as np
 from PyQt5.QtWidgets import QGraphicsView
+from PyQt5 import QtCore
 
 
 class Plot(object):
@@ -25,24 +26,28 @@ class Plot(object):
 
     def get_pen(self, index):
         COLORS = [
-            # white
-            (255, 255, 255),
-            # red salsa
-            (255, 53, 78),
-            # Neon Green
-            (31, 255, 15),
-            # Picton Blue
-            (68, 204, 255),
-            # Neon yellow
-            (255, 240, 31),
-            # Neon Pink
-            (255, 68, 204),
-            # Neon orange
-            (247, 149, 72),
+            "FBFFFF", # Neon White
+            "F79548", # Bright Neon Orange
+            "83EEFF", # Neon Light Blue
+            "72BF44", # Neon Green
+            "FFC42E", # Neon Gold
+            "B026FF", # Neon Purple
+            "BAB9B9", # Comfort Gray
+            "F72119", # Neon Red
+            "FF0EF3", # Neon Fuchsia
         ]
 
-        return pg.mkPen(index, len(self.trace_names))
-        # return pg.mkPen(COLORS[index % len(COLORS)])
+        PEN_STYLES = [
+            QtCore.Qt.SolidLine,
+            QtCore.Qt.DashLine,
+            QtCore.Qt.DotLine,
+            QtCore.Qt.DashDotLine,
+            QtCore.Qt.DashDotDotLine,
+            QtCore.Qt.CustomDashLine
+        ]
+
+        # return pg.mkPen(index, len(self.trace_names))
+        return pg.mkPen(COLORS[index % len(COLORS)], width=2, style=PEN_STYLES[index % len(PEN_STYLES)])
 
     def set_header(self, header_names):
         self.legend.clear()
