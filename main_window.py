@@ -280,8 +280,8 @@ class MainWindow(QMainWindow):
             self.on_reset_device_callback()
 
     def __rescale_axes__(self):
-        self.plot_page.plot.canvas.getPlotItem().enableAutoRange(axis='y')
-        self.plot_page.plot.canvas.getPlotItem().setAutoVisible(y=True)
+        self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
+        self.plot_page.plot.canvas.getPlotItem().setAutoVisible(x=True,y=True)
 
     def __clear_plot__(self):
         self.plot_page.plot.plot_item.clear()
@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
     def __export_scene__(self):
         try:
             e = exportDialog.ExportDialog(self.plot_page.plot.canvas.plotItem.scene())
-            e.show(self.plot_page.plot.canvas.plotItem)
+            e.show() # self.plot_page.plot.canvas.plotItem)
         except:
             pass
 
