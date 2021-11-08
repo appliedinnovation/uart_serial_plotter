@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from main_window import MainWindow
+from uart_serial_plotter.main_window import MainWindow
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtGui
 import signal
