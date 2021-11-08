@@ -77,10 +77,10 @@ class MainWindow(QMainWindow):
         #
         # If there is a port, open it
         if self.port:
-            self.log_info("Current port: " + str(self.port))
+            print("Current port: " + str(self.port))
             self.__reopen_serial_port__()
         else:
-            self.log_warning("No device connected")
+            print("No device connected")
 
         if sys.platform.startswith("win"):
             # TODO(pranav): Implement this class for Linux
@@ -90,7 +90,10 @@ class MainWindow(QMainWindow):
 
         self.update_timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
         self.update_timer.timeout.connect(self.__update_plot__)
-        self.update_timer.start(33)
+
+        PLOT_UPDATE_FREQUENCY_HZ = 60
+        PLOT_UPDATE_PERIOD_MS = int(float(1.0 / PLOT_UPDATE_FREQUENCY_HZ) * 1000)
+        self.update_timer.start(PLOT_UPDATE_PERIOD_MS)
 
     def __init_font__(self):
         fontDatabase = QtGui.QFontDatabase()
@@ -128,10 +131,6 @@ class MainWindow(QMainWindow):
     def __init_ui__(self):
         QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
         self.__init_font__()
-        self.log_editor = QTextEdit()
-        self.log_editor.setFont(self.font)
-        self.log_editor.setStyleSheet(self.__get_editor_stylesheet__())
-
         self.setWindowTitle("UART Serial Plotter")
 
         # Initialize the plot
@@ -155,32 +154,7 @@ class MainWindow(QMainWindow):
 
         self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
 
-        self.output_editor = QTextEdit()
-        self.output_editor.setFont(self.font)
-        self.output_editor.setStyleSheet(self.__get_editor_stylesheet__())
-
-        self.tabs = Tabs(self)
-        self.tabs.addTab(self.output_editor, "Output")
-        self.tabs.setTabText(0, "Output")
-        self.tabs.addTab(self.log_editor, "Log")
-        self.tabs.setTabText(1, "Log")
-        self.tabs.setStyleSheet(
-            "QTabBar::tab:selected {background: white; color: black;}"
-            "QTabBar::tab {background: rgb(27,27,28); color: white;}"
-            "QTabWidget:pane {border: 1px solid gray;}"
-        )
-        self.tabs.setFont(self.font)
-
-        splitter = QSplitter(QtCore.Qt.Vertical)
-        layout = QVBoxLayout()
-        splitter.setStyleSheet("QWidget {background: rgb(27, 27, 28);}")
-        splitter.addWidget(self.plot_tab)
-        splitter.addWidget(self.tabs)
-        layout.addWidget(splitter)
-
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+        self.setCentralWidget(self.plot_tab)
 
         self.__center_window__()
         self.showMaximized()
@@ -273,29 +247,6 @@ class MainWindow(QMainWindow):
             self.baudrate_action_group.addAction(action)
         self.baudrate_action_group.setExclusive(True)
 
-    def log(self, color, msg):
-        # Append received data to log window
-        cursor = self.log_editor.textCursor()
-        cursor.movePosition(QtGui.QTextCursor.End)
-        cursor.insertHtml(
-            """
-            <div style='color:{};'>
-            {}
-            <br/>
-            </div>""".format(
-                color, msg
-            )
-        )
-
-    def log_error(self, msg):
-        self.log("#FF073A", msg)
-
-    def log_warning(self, msg):
-        self.log("#FFC42E", msg)
-
-    def log_info(self, msg):
-        self.log("white", msg)
-
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
             self.port = newPort
@@ -308,18 +259,18 @@ class MainWindow(QMainWindow):
         self.__reopen_serial_port__()
 
     def __refresh_ports__(self):
-        self.log_info("Refreshing serial ports")
+        print("Refreshing serial ports")
         self.serial_ports = list_serial_ports()
         self.__init_port_menu__()
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
-            self.log_warning("No serial ports detected")
+            print("No serial ports detected")
         else:
             self.resetDevice.setEnabled(True)
-            self.log_info("One or more serial ports detected")
+            print("One or more serial ports detected")
 
     def __reset_device__(self):
-        self.log_info("Toggling DTR/RTS for device at serial port {}".format(self.port))
+        print("Toggling DTR/RTS for device at serial port {}".format(self.port))
 
         # Close if already open
         if self.serial_port:
@@ -369,7 +320,7 @@ class MainWindow(QMainWindow):
                     data.extend(signals)
                     dataset.append(data)
                 self.plot_page.plot.update_data(dataset)
-                self.log_info("Successfully imported from '{}'".format(path))
+                print("Successfully imported from '{}'".format(path))
 
     # window functions
     def __center_window__(self):
@@ -382,11 +333,11 @@ class MainWindow(QMainWindow):
         # Close if already open
         if self.serial_port:
             self.serial_port.close()
-            self.log_info("Closed serial port")
+            print("Closed serial port")
 
         # Open serial_port
         if self.port and self.baudrate:
-            self.log_info(
+            print(
                 "Opening serial port {}, baud={}".format(self.port, self.baudrate)
             )
             self.serial_port = serial.Serial()
@@ -418,136 +369,9 @@ class MainWindow(QMainWindow):
         if sys.version_info >= (3, 0):
             strdata = strdata.decode("utf-8", "backslashreplace")
 
-        escaped_strdata = escape_ansi(strdata)
-
-        def strdata_as_html():
-            nonlocal strdata
-            nonlocal escaped_strdata
-
-            split_ANSI_escape_sequences = re.compile(
-                r"""
-                (?P<col>(\x1b     # literal ESC
-                \[       # literal [
-                [;\d]*   # zero or more digits or semicolons
-                [A-Za-z] # a letter
-                )*)
-                (?P<name>.*)
-                """,
-                re.VERBOSE,
-            ).match
-
-            # print(repr(escaped_strdata))
-            num_newlines = escaped_strdata.count("\n")
-
-            def generate_break(n):
-                return "".join(["<br/>" for i in range(n)])
-
-            group_dict = split_ANSI_escape_sequences(strdata).groupdict()
-            if "col" in group_dict:
-                # There is an ANSI color code
-                color_code = repr(group_dict["col"])
-
-                if group_dict["col"] != "":
-
-                    ANSI_FOREGROUND_COLOR_MAP = {
-                        "\x1b[0;30m": "#000000",  # Black
-                        "\x1b[0;31m": "#FF073A",  # Red
-                        "\x1b[0;32m": "#1FFF0F",  # Green
-                        "\x1b[0;33m": "#FFC42E",  # Yellow
-                        "\x1b[0;34m": "#4D4DFF",  # Blue
-                        "\x1b[0;35m": "#EA00FF",  # Magenta
-                        "\x1b[0;36m": "#00FFFF",  # Cyan
-                        "\x1b[0;37m": "#FBFFFF",  # White
-                    }
-
-                    # Check if ANSI color code is specified using:
-                    # \x1B[38;2;R;G;Bm
-                    #
-                    # This is any RGB color (with values in [0-255])
-                    any_rgb_color = str("\x1b[38;2;")
-                    color_code_str = str(group_dict["col"])
-                    if any_rgb_color in color_code_str:
-                        color_split = color_code_str.split(any_rgb_color)
-                        r, g, b = color_split[1].split(";")
-                        b = b.split("m")[0]
-                        r, g, b = [int(i) for i in (r, g, b)]
-
-                        BASIC_COLORS = {
-                            (255, 255, 255): "#FBFFFF",  # Neon white
-                            (255, 0, 0): "#FF073A",  # Neon red
-                            (0, 255, 0): "#1FFF0F",  # Neon green
-                            (0, 0, 255): "#4D4DFF",  # Neon blue
-                        }
-
-                        strdata = ""
-                        if (r, g, b) in BASIC_COLORS:
-                            # Replace (r,g,b) with neon variant which is more suitable for dark mode
-                            strdata = "<div style='color:{};'>".format(
-                                BASIC_COLORS[(r, g, b)]
-                            )
-                        else:
-                            # Not a basic color, use exact RGB as received
-                            strdata = "<div style='color:rgb({},{},{});'>".format(r, g, b)
-                        strdata += (
-                            escaped_strdata.strip()
-                            + generate_break(num_newlines)
-                            + "</div>"
-                        )
-                    else:
-                        found_color = False
-                        for c in ANSI_FOREGROUND_COLOR_MAP:
-                            if color_code == repr(c):
-                                if c in strdata:
-                                    strdata = (
-                                        "<div style='color:{};'>".format(
-                                            ANSI_FOREGROUND_COLOR_MAP[c]
-                                        )
-                                        + escaped_strdata.strip()
-                                        + generate_break(num_newlines)
-                                        + "</br>"
-                                    )
-                                    found_color = True
-                                    break
-                        if not found_color:
-                            strdata = "<div style='color:#FBFFFF;'>{}{}</div>".format(
-                                escaped_strdata, generate_break(num_newlines)
-                            )
-                else:
-                    strdata = "<div style='color:#FBFFFF;'>{}{}</div>".format(
-                        escaped_strdata, generate_break(num_newlines)
-                    )
-            else:
-                strdata = "<div style='color:#FBFFFF;'>{}{}</div>".format(
-                    escaped_strdata, generate_break(num_newlines)
-                )
-
-            # Strip all ANSI style characters
-            ANSI_STYLES = {
-                "\x1b[m",
-                "\x1b[0m",  # Reset
-                "\x1b[1m",  # Bold
-                "\x1b[2m",  # Faint
-                "\x1b[3m",  # Italic
-                "\x1b[4m",  # Underlined
-                "\x1b[7m",  # Inverse
-                "\x1b[9m",  # Strikethrough
-            }
-
-            for style in ANSI_STYLES:
-                if style in strdata:
-                    strdata = strdata.replace(style, "")
-
-            # Append received data to GUI output window
-            cursor = self.output_editor.textCursor()
-            cursor.movePosition(QtGui.QTextCursor.End)
-            cursor.insertHtml(strdata)
-            self.output_editor.setTextCursor(cursor)
-            self.output_editor.ensureCursorVisible()
-
-        # Update output editor text with a one-shot timer
-        QtCore.QTimer.singleShot(0, strdata_as_html)
-
-        arrdata = escaped_strdata.strip().split(",")
+        strdata = escape_ansi(strdata)
+        strdata = strdata.strip()
+        arrdata = strdata.split(",")
 
         # There must be at least 2 columns
         # Time,Signal_1
@@ -590,16 +414,16 @@ class MainWindow(QMainWindow):
                 else:
                     # Ignore it, this is not a valid datapoint
                     # datapoint could be an empty list
-                    self.log_info(
-                        "Not a valid datapoint: '{}'".format(escaped_strdata.strip())
+                    print(
+                        "Not a valid datapoint: '{}'".format(strdata)
                     )
             except:
                 pass
 
     def __on_usb_device_arrival__(self):
-        self.log_info("Detected New USB Device")
+        print("Detected New USB Device")
         self.__refresh_ports__()
 
     def __on_usb_device_removal__(self):
-        self.log_info("Detected USB Device Removal")
+        print("Detected USB Device Removal")
         self.__refresh_ports__()
