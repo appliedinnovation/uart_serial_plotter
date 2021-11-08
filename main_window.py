@@ -291,7 +291,7 @@ class MainWindow(QMainWindow):
         self.__init_port_menu__()
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
-            self.log_info("No serial ports detected")
+            self.log_warning("No serial ports detected")
         else:
             self.resetDevice.setEnabled(True)
             self.log_info("One or more serial ports detected")
