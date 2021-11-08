@@ -552,10 +552,14 @@ class MainWindow(QMainWindow):
                     self.plot_page.plot.set_header(header)
                     self.plot_page.plot.update_data([datapoint])
                 elif len(self.plot_page.plot.trace_names) == len(datapoint):
+                    # This is a good datapoint
+                    # Matches the exact number of cols as the header
                     self.plot_page.plot.update_data([datapoint])
                 else:
+                    # Ignore it, this is not a valid datapoint
+                    # datapoint could be an empty list
                     self.log_info(
-                        "Not a valid datapoint: '{}'", escaped_strdata.strip()
+                        "Not a valid datapoint: '{}'".format(escaped_strdata.strip())
                     )
             except:
                 pass
