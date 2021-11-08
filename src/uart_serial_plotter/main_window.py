@@ -139,22 +139,12 @@ class MainWindow(QMainWindow):
         self.plot_page.plot.canvas.getAxis("left").tickFont = self.font
         self.plot_page.plot.canvas.getAxis("bottom").tickFont = self.font
 
-        self.plot_tab = Tabs(self)
-        self.plot_tab.addTab(self.plot_page, str(self.port) if self.port is not None else "Port")
-        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
-        self.plot_tab.setStyleSheet(
-            "QTabBar::tab:selected {background: white; color: black;}"
-            "QTabBar::tab {background: rgb(27,27,28); color: white;}"
-            "QTabWidget:pane {border: 1px solid gray;}"
-        )
-        self.plot_tab.setFont(self.font)
-
         self.__init_actions__()
         self.__init_menubar__()
 
         self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
 
-        self.setCentralWidget(self.plot_tab)
+        self.setCentralWidget(self.plot_page)
 
         self.__center_window__()
         self.showMaximized()
@@ -220,7 +210,6 @@ class MainWindow(QMainWindow):
                 if i == len(self.serial_ports) - 1:
                     action.setChecked(True)
                     self.port = self.serial_ports[i]
-                    self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
                     self.__on_port_changed__(self.port)
                 self.ports_action_group.addAction(action)
             self.ports_action_group.setExclusive(True)
@@ -251,7 +240,6 @@ class MainWindow(QMainWindow):
         if newPort != self.port:
             self.port = newPort
         self.__reopen_serial_port__()
-        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
 
     def __on_baudrate_changed__(self, newBaudRate):
         if newBaudRate != self.baudrate:
@@ -337,9 +325,7 @@ class MainWindow(QMainWindow):
 
         # Open serial_port
         if self.port and self.baudrate:
-            print(
-                "Opening serial port {}, baud={}".format(self.port, self.baudrate)
-            )
+            print("Opening serial port {}, baud={}".format(self.port, self.baudrate))
             self.serial_port = serial.Serial()
             self.serial_port.port = self.port
             self.serial_port.baudrate = self.baudrate
@@ -414,9 +400,7 @@ class MainWindow(QMainWindow):
                 else:
                     # Ignore it, this is not a valid datapoint
                     # datapoint could be an empty list
-                    print(
-                        "Not a valid datapoint: '{}'".format(strdata)
-                    )
+                    print("Not a valid datapoint: '{}'".format(strdata))
             except:
                 pass
 
