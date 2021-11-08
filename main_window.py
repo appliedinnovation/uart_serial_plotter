@@ -519,7 +519,9 @@ class MainWindow(QMainWindow):
 
         arrdata = escaped_strdata.strip().split(",")
 
-        # return if there was not a comma
+        # There must be at least 2 columns
+        # Time,Signal_1
+        # Then it is (possibly) a valid timeseries
         if len(arrdata) < 2:
             return
 
