@@ -246,8 +246,7 @@ class MainWindow(QMainWindow):
                 if i == len(self.serial_ports) - 1:
                     action.setChecked(True)
                     self.port = self.serial_ports[i]
-                    if self.plot_tab:
-                        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
+                    self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
                     self.__on_port_changed__(self.port)
                 self.ports_action_group.addAction(action)
             self.ports_action_group.setExclusive(True)
@@ -301,6 +300,7 @@ class MainWindow(QMainWindow):
         if newPort != self.port:
             self.port = newPort
         self.__reopen_serial_port__()
+        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
 
     def __on_baudrate_changed__(self, newBaudRate):
         if newBaudRate != self.baudrate:
