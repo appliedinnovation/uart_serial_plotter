@@ -184,6 +184,11 @@ class MainWindow(QMainWindow):
         self.refreshAction.setStatusTip("Refresh Serial Ports")
         self.refreshAction.triggered.connect(self.__refresh_ports__)
 
+        self.rescaleAxesAction = Action(None, "Rescale Axes", self)
+        self.rescaleAxesAction.setShortcut("Ctrl+R")
+        self.rescaleAxesAction.setStatusTip("Rescale Plot Axes")
+        self.rescaleAxesAction.triggered.connect(self.__rescale_axes__)
+
         self.resetDevice = Action(None, "Toggle DTR/RTS", self)
         self.resetDevice.setStatusTip("Reset Device")
         self.resetDevice.triggered.connect(self.__reset_device__)
@@ -193,11 +198,18 @@ class MainWindow(QMainWindow):
         self.importSceneAction.setStatusTip("Import scene from CSV")
         self.importSceneAction.triggered.connect(self.__import_scene__)
 
+    def __rescale_axes__(self):
+        self.plot_page.plot.canvas.getPlotItem().disableAutoRange()
+        self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
+
     def __init_menubar__(self):
         self.menubar_init()
         self.menubar_add_menu("&File")
         self.menu_add_action("&File", self.importSceneAction)
         self.menu_add_action("&File", self.exitAction)
+
+        self.menubar_add_menu("&View")
+        self.menu_add_action("&View", self.rescaleAxesAction)
 
         self.menubar_add_menu("&Serial")
         self.__refresh_ports__()
