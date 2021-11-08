@@ -20,8 +20,8 @@ This project provides [pyqtgraph](https://www.pyqtgraph.org/) based applications
 Install dependencies and run `main.py`
 
 ```console
-foo@bar:~$ pip install -r requirements.txt
-foo@bar:~$ python main.py
+foo@bar:~$ python setup.py install
+foo@bar:~$ uart_serial_plotter
 ```
 
 ![image](https://raw.githubusercontent.com/appliedinnovation/uart_serial_plotter/master/images/demo.png?token=ACAPAK35YQ7V2T7TUKFU2K3BSHA4W)
