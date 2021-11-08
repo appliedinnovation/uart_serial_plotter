@@ -21,45 +21,21 @@ from PyQt5 import QtGui
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
     QActionGroup,
-    QMenu,
-    QSizePolicy,
     QWidget,
-    QPushButton,
-    QLabel,
-    QComboBox,
     QApplication,
     QMainWindow,
     QStyleFactory,
     QDesktopWidget,
-    QMessageBox,
-    QErrorMessage,
     QDialog,
     QFileDialog,
     QSplitter,
-    QScrollArea,
     QTextEdit,
     QVBoxLayout,
-    QStatusBar,
-    QTabWidget,
-)
-from PyQt5.QtCore import (
-    QFileInfo,
-    QFile,
-    QProcess,
-    QTimer,
-    QBasicTimer,
-    Qt,
-    QObject,
-    QRunnable,
-    QThread,
-    QThreadPool,
-    pyqtSignal,
 )
 
 from pyqtgraph.GraphicsScene import exportDialog
 
 from action import Action
-import resource
 import pages
 from list_serial_ports import list_serial_ports
 from pager import Pager
@@ -420,14 +396,124 @@ class MainWindow(QMainWindow):
         if sys.version_info >= (3, 0):
             strdata = strdata.decode("utf-8", "backslashreplace")
 
-        strdata = escape_ansi(strdata)
-        strdata = strdata.strip()
+        split_ANSI_escape_sequences = re.compile(
+            r"""
+            (?P<col>(\x1b     # literal ESC
+            \[       # literal [
+            [;\d]*   # zero or more digits or semicolons
+            [A-Za-z] # a letter
+            )*)
+            (?P<name>.*)
+            """,
+            re.VERBOSE,
+        ).match
+
+        escaped_strdata = escape_ansi(strdata)
+        # print(repr(escaped_strdata))
+        num_newlines = escaped_strdata.count("\n")
+
+        def generate_break(n):
+            return "".join(["<br/>" for i in range(n)])
+
+        group_dict = split_ANSI_escape_sequences(strdata).groupdict()
+        if "col" in group_dict:
+            # There is an ANSI color code
+            color_code = repr(group_dict["col"])
+
+            if group_dict["col"] != "":
+
+                ANSI_FOREGROUND_COLOR_MAP = {
+                    "\x1b[0;30m": "#000000",  # Black
+                    "\x1b[0;31m": "#FF073A",  # Red
+                    "\x1b[0;32m": "#1FFF0F",  # Green
+                    "\x1b[0;33m": "#FFC42E",  # Yellow
+                    "\x1b[0;34m": "#4D4DFF",  # Blue
+                    "\x1b[0;35m": "#EA00FF",  # Magenta
+                    "\x1b[0;36m": "#00FFFF",  # Cyan
+                    "\x1b[0;37m": "#FBFFFF",  # White
+                }
+
+                # Check if ANSI color code is specified using:
+                # \x1B[38;2;R;G;Bm
+                #
+                # This is any RGB color (with values in [0-255])
+                any_rgb_color = str("\x1b[38;2;")
+                color_code_str = str(group_dict["col"])
+                if any_rgb_color in color_code_str:
+                    color_split = color_code_str.split(any_rgb_color)
+                    r, g, b = color_split[1].split(";")
+                    b = b.split("m")[0]
+                    r, g, b = [int(i) for i in (r, g, b)]
+
+                    BASIC_COLORS = {
+                        (255, 255, 255): "#FBFFFF",  # Neon white
+                        (255, 0, 0): "#FF073A",  # Neon red
+                        (0, 255, 0): "#1FFF0F",  # Neon green
+                        (0, 0, 255): "#4D4DFF",  # Neon blue
+                    }
+
+                    strdata = ""
+                    if (r, g, b) in BASIC_COLORS:
+                        # Replace (r,g,b) with neon variant which is more suitable for dark mode
+                        strdata = "<div style='color:{};'>".format(
+                            BASIC_COLORS[(r, g, b)]
+                        )
+                    else:
+                        # Not a basic color, use exact RGB as received
+                        strdata = "<div style='color:rgb({},{},{});'>".format(r, g, b)
+                    strdata += (
+                        escaped_strdata.strip()
+                        + generate_break(num_newlines)
+                        + "</div>"
+                    )
+                else:
+                    found_color = False
+                    for c in ANSI_FOREGROUND_COLOR_MAP:
+                        if color_code == repr(c):
+                            if c in strdata:
+                                strdata = (
+                                    "<div style='color:{};'>".format(
+                                        ANSI_FOREGROUND_COLOR_MAP[c]
+                                    )
+                                    + escaped_strdata.strip()
+                                    + generate_break(num_newlines)
+                                    + "</br>"
+                                )
+                                found_color = True
+                                break
+                    if not found_color:
+                        strdata = "<div style='color:#FBFFFF;'>{}{}</div>".format(
+                            escaped_strdata, generate_break(num_newlines)
+                        )
+            else:
+                strdata = "<div style='color:#FBFFFF;'>{}{}</div>".format(
+                    escaped_strdata, generate_break(num_newlines)
+                )
+        else:
+            strdata = "<div style='color:#FBFFFF;'>{}{}</div>".format(
+                escaped_strdata, generate_break(num_newlines)
+            )
+
+        # Strip all ANSI style characters
+        ANSI_STYLES = {
+            "\x1b[m",
+            "\x1b[0m",  # Reset
+            "\x1b[1m",  # Bold
+            "\x1b[2m",  # Faint
+            "\x1b[3m",  # Italic
+            "\x1b[4m",  # Underlined
+            "\x1b[7m",  # Inverse
+            "\x1b[9m",  # Strikethrough
+        }
+
+        for style in ANSI_STYLES:
+            if style in strdata:
+                strdata = strdata.replace(style, "")
 
         # Append received data to GUI output window
         cursor = self.output_editor.textCursor()
         cursor.movePosition(QtGui.QTextCursor.End)
-
-        cursor.insertText(strdata + "\n")
+        cursor.insertHtml(strdata)
         self.output_editor.setTextCursor(cursor)
         self.output_editor.ensureCursorVisible()
 
