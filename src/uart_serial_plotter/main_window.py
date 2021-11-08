@@ -82,9 +82,11 @@ class MainWindow(QMainWindow):
         else:
             self.log_warning("No device connected")
 
-        UsbDeviceChangeMonitor(
-            self.__on_usb_device_arrival__, self.__on_usb_device_removal__
-        )
+        if sys.platform.startswith("win"):
+            # TODO(pranav): Implement this class for Linux
+            UsbDeviceChangeMonitor(
+                self.__on_usb_device_arrival__, self.__on_usb_device_removal__
+            )
 
         self.update_timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
         self.update_timer.timeout.connect(self.__update_plot__)
