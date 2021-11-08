@@ -432,7 +432,6 @@ class MainWindow(QMainWindow):
                     "\x1b[0;35m": "#EA00FF",  # Magenta
                     "\x1b[0;36m": "#00FFFF",  # Cyan
                     "\x1b[0;37m": "#FBFFFF",  # White
-
                     # uppercase B
                     "\x1B[0;30m": "#000000",  # Black
                     "\x1B[0;31m": "#FF073A",  # Red
@@ -516,7 +515,6 @@ class MainWindow(QMainWindow):
             "\x1b[4m",  # Underlined
             "\x1b[7m",  # Inverse
             "\x1b[9m",  # Strikethrough
-
             # uppercase B
             "\x1B[m",
             "\x1B[0m",  # Reset
