@@ -17,8 +17,6 @@ This project provides [pyqtgraph](https://www.pyqtgraph.org/) based applications
 
 ## Quick Start
 
-Install dependencies and run `main.py`
-
 ```console
 foo@bar:~$ python setup.py install
 foo@bar:~$ uart_serial_plotter
