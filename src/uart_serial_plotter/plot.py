@@ -22,20 +22,7 @@ class Plot(object):
         self.legend = self.canvas.addLegend()
 
     def get_pen(self, index):
-        COLORS = [
-            "FBFFFF",  # Neon White
-            "F79548",  # Bright Neon Orange
-            "83EEFF",  # Neon Light Blue
-            "72BF44",  # Neon Green
-            "FFC42E",  # Neon Gold
-            "B026FF",  # Neon Purple
-            "BAB9B9",  # Comfort Gray
-            "F72119",  # Neon Red
-            "FF0EF3",  # Neon Fuchsia
-        ]
-
-        # return pg.mkPen(index, len(self.trace_names))
-        return pg.mkPen(COLORS[index % len(COLORS)])
+        return pg.mkPen(index, len(self.trace_names))
 
     def set_header(self, header_names):
         self.legend.clear()
@@ -46,7 +33,6 @@ class Plot(object):
             else:
                 self.traces[name] = self.canvas.plot(
                     pen=self.get_pen(i),
-                    # (i, len(self.trace_names)),
                     name=name,
                 )
 
@@ -73,6 +59,5 @@ class Plot(object):
         else:
             self.traces[name] = self.canvas.plot(
                 pen=self.get_pen(len(self.trace_names)),
-                # pen=(len(self.trace_names), len(self.trace_names)),
                 name=name,
             )
