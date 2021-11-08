@@ -134,15 +134,26 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("UART Serial Plotter")
 
-        self.__init_actions__()
-        self.__init_menubar__()
-
-        self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
-
+        # Initialize the plot
         self.plot_page = PlotPage()
         self.plot_page.plot.plot_item.clear()
         self.plot_page.plot.canvas.getAxis("left").tickFont = self.font
         self.plot_page.plot.canvas.getAxis("bottom").tickFont = self.font
+
+        self.plot_tab = Tabs(self)
+        self.plot_tab.addTab(self.plot_page, str(self.port) if self.port is not None else "Port")
+        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
+        self.plot_tab.setStyleSheet(
+            "QTabBar::tab:selected {background: white; color: black;}"
+            "QTabBar::tab {background: rgb(27,27,28); color: white;}"
+            "QTabWidget:pane {border: 1px solid gray;}"
+        )
+        self.plot_tab.setFont(self.font)
+
+        self.__init_actions__()
+        self.__init_menubar__()
+
+        self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
 
         self.output_editor = QTextEdit()
         self.output_editor.setFont(self.font)
@@ -163,7 +174,7 @@ class MainWindow(QMainWindow):
         splitter = QSplitter(QtCore.Qt.Vertical)
         layout = QVBoxLayout()
         splitter.setStyleSheet("QWidget {background: rgb(27, 27, 28);}")
-        splitter.addWidget(self.plot_page)
+        splitter.addWidget(self.plot_tab)
         splitter.addWidget(self.tabs)
         layout.addWidget(splitter)
 
@@ -235,6 +246,8 @@ class MainWindow(QMainWindow):
                 if i == len(self.serial_ports) - 1:
                     action.setChecked(True)
                     self.port = self.serial_ports[i]
+                    if self.plot_tab:
+                        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
                     self.__on_port_changed__(self.port)
                 self.ports_action_group.addAction(action)
             self.ports_action_group.setExclusive(True)
