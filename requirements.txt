@@ -1,6 +1,5 @@
-numpy==1.21.3
 PyQt5==5.15.6
 pyqtgraph==0.12.3
 pyserial==3.5
 pywin32==302
-win32gui==221.6
+setuptools==57.4.0

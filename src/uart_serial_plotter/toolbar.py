@@ -1,7 +1,3 @@
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-
-
 def toolbar_init(self):
     self.toolbars = {}
 

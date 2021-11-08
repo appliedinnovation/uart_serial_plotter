@@ -1,6 +1,4 @@
 import functools
-from numpy import empty
-from pyqtgraph.graphicsItems.ScatterPlotItem import ScatterPlotItem
 import re
 import serial
 import serial.tools.list_ports

@@ -1,7 +1,3 @@
-from PyQt5 import QtCore
-from PyQt5 import QtGui
-
-
 def menubar_init(self):
     self.menus = {}
     self.menubar = self.menuBar()

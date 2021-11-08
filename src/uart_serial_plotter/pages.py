@@ -1,20 +1,13 @@
 from PyQt5 import QtGui
 from PyQt5.QtWidgets import (
     QWidget,
-    QPushButton,
     QLabel,
     QVBoxLayout,
     QVBoxLayout,
-    QMessageBox,
-    QErrorMessage,
-    QScrollArea,
     QSizePolicy,
 )
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QSize, Qt
 
-import resource
-import pyqtgraph as pg
-import numpy as np
 from plot import Plot
 
 # from progress import ProgressBar
