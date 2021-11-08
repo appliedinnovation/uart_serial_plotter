@@ -423,6 +423,7 @@ class MainWindow(QMainWindow):
             if group_dict["col"] != "":
 
                 ANSI_FOREGROUND_COLOR_MAP = {
+                    # lowercase b
                     "\x1b[0;30m": "#000000",  # Black
                     "\x1b[0;31m": "#FF073A",  # Red
                     "\x1b[0;32m": "#1FFF0F",  # Green
@@ -431,6 +432,16 @@ class MainWindow(QMainWindow):
                     "\x1b[0;35m": "#EA00FF",  # Magenta
                     "\x1b[0;36m": "#00FFFF",  # Cyan
                     "\x1b[0;37m": "#FBFFFF",  # White
+
+                    # uppercase B
+                    "\x1B[0;30m": "#000000",  # Black
+                    "\x1B[0;31m": "#FF073A",  # Red
+                    "\x1B[0;32m": "#1FFF0F",  # Green
+                    "\x1B[0;33m": "#FFC42E",  # Yellow
+                    "\x1B[0;34m": "#4D4DFF",  # Blue
+                    "\x1B[0;35m": "#EA00FF",  # Magenta
+                    "\x1B[0;36m": "#00FFFF",  # Cyan
+                    "\x1B[0;37m": "#FBFFFF",  # White
                 }
 
                 # Check if ANSI color code is specified using:
@@ -496,6 +507,7 @@ class MainWindow(QMainWindow):
 
         # Strip all ANSI style characters
         ANSI_STYLES = {
+            # lowercase b
             "\x1b[m",
             "\x1b[0m",  # Reset
             "\x1b[1m",  # Bold
@@ -504,6 +516,16 @@ class MainWindow(QMainWindow):
             "\x1b[4m",  # Underlined
             "\x1b[7m",  # Inverse
             "\x1b[9m",  # Strikethrough
+
+            # uppercase B
+            "\x1B[m",
+            "\x1B[0m",  # Reset
+            "\x1B[1m",  # Bold
+            "\x1B[2m",  # Faint
+            "\x1B[3m",  # Italic
+            "\x1B[4m",  # Underlined
+            "\x1B[7m",  # Inverse
+            "\x1B[9m",  # Strikethrough
         }
 
         for style in ANSI_STYLES:
