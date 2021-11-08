@@ -24,4 +24,4 @@ foo@bar:~$ pip install -r requirements.txt
 foo@bar:~$ python main.py
 ```
 
-![image](https://raw.githubusercontent.com/appliedinnovation/uart_serial_plotter/master/images/demo.png?token=ACAPAK37EEHHDJG62YOJFFLBSGU4A)
+![image](https://raw.githubusercontent.com/appliedinnovation/uart_serial_plotter/master/images/demo.png?token=ACAPAK35YQ7V2T7TUKFU2K3BSHA4W)
