@@ -6,7 +6,7 @@ import serial.tools.list_ports
 import sys
 
 if sys.platform.startswith("win"):
-    from uart_serial_plotter.usb_device_listener_windows import UsbDeviceChangeMonitor
+    from usb_device_listener_windows import UsbDeviceChangeMonitor
 elif sys.platform.startswith("linux"):
     # not implemented
     pass
@@ -31,16 +31,16 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from uart_serial_plotter.action import Action
-from uart_serial_plotter.pages import PlotPage
-from uart_serial_plotter.list_serial_ports import list_serial_ports
+from action import Action
+from pages import PlotPage
+from list_serial_ports import list_serial_ports
 import csv
-from uart_serial_plotter.tabs import Tabs
+from tabs import Tabs
 
 
 class MainWindow(QMainWindow):
 
-    from uart_serial_plotter.menubar import (
+    from menubar import (
         menubar_init,
         menubar_add_menu,
         menubar_get_menu,

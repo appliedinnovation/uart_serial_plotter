@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import pyqtSignal, pyqtSlot, QSize, Qt
 
-from uart_serial_plotter.plot import Plot
+from plot import Plot
 
 
 class BasePage(QWidget):

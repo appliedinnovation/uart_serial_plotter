@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from uart_serial_plotter.main_window import MainWindow
+from main_window import MainWindow
 from PyQt5.QtWidgets import QApplication
 from PyQt5 import QtGui
 import signal
@@ -7,10 +7,11 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 import sys
 
+import resource
 
 def main():
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon("./images/icon.png"))
+    app.setWindowIcon(QtGui.QIcon(resource.path("images/icon.png")))
     MainWindow()
     sys.exit(app.exec_())
 
