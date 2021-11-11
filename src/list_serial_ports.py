@@ -9,20 +9,15 @@ def list_serial_ports():
     :returns:
         A list of the serial ports available on the system
     """
-    portDesc = ""
-    if sys.platform.startswith("win"):
-        portDesc = "USB Serial Port"
-    elif sys.platform.startswith("linux") or sys.platform.startswith("cygwin"):
-        portDesc = "TTL232R-3V3"
-    elif sys.platform.startswith("darwin"):
-        portDesc = "TTL232R-3V3"
-    else:
-        raise EnvironmentError("Unsupported platform")
-
+    port_descriptors = ["USB Serial Port", "TTL232R-3V3", "USB to UART"]
     ports = list(serial.tools.list_ports.comports())
     result = []
     for p in ports:
-        if portDesc in p.description:
+        is_correct_type_of_port = False
+        for desc in port_descriptors:
+            if desc in p.description:
+                is_correct_type_of_port = True
+        if is_correct_type_of_port:
             try:
                 # s = serial.Serial(p.device)
                 # s.close()
