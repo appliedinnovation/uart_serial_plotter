@@ -10,6 +10,9 @@ if sys.platform.startswith("win"):
 elif sys.platform.startswith("linux"):
     # not implemented
     pass
+elif sys.platform.startswith("darwin"):
+    # not implemented
+    pass
 else:
     raise ImportError(
         "This module does not support this platform '{}'".format(sys.platform)

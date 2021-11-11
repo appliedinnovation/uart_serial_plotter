@@ -7,11 +7,11 @@ import signal
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 import sys
 
-import resource
+from resource_helpers import path
 
 def main():
     app = QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(resource.path("images/icon.png")))
+    app.setWindowIcon(QtGui.QIcon(path("images/icon.png")))
     MainWindow()
     sys.exit(app.exec_())
 
