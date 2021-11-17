@@ -83,6 +83,7 @@ class MainWindow(QMainWindow):
         if self.port:
             self.log("Current port: " + str(self.port))
             self.__reopen_serial_port__()
+            self.__change_menubar_text_open_close_port__()
         else:
             self.log("No device connected")
 
@@ -338,6 +339,7 @@ class MainWindow(QMainWindow):
         if newBaudRate != self.baudrate:
             self.baudrate = newBaudRate
         self.__reopen_serial_port__()
+        self.__change_menubar_text_open_close_port__()
 
     def __refresh_ports__(self):
         self.log("Refreshing serial ports")
@@ -425,7 +427,10 @@ class MainWindow(QMainWindow):
             # Disable hardware flow control
             self.serial_port.setRTS(False)
             self.serial_port.setDTR(False)
-            self.serial_port.open()
+            try:
+                self.serial_port.open()
+            except Exception as e:
+                self.log(str(e))
 
     def __update_plot__(self):
         def escape_ansi(line):
@@ -518,7 +523,11 @@ class MainWindow(QMainWindow):
             self.openClosePort.setText("Open serial port")
             self.openClosePort.setToolTip("Open serial port")
         else:
-            self.serial_port.open()
+            try:
+                self.serial_port.open()
+            except Exception as e:
+                self.log(str(e))
+                return
             self.log("Opened serial port")
             self.openClosePort.setText("Close serial port")
             self.openClosePort.setToolTip("Close serial port")
