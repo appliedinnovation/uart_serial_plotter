@@ -148,7 +148,9 @@ class MainWindow(QMainWindow):
         self.plot_page.plot.canvas.getAxis("bottom").tickFont = self.font
 
         self.plot_tab = Tabs(self)
-        self.plot_tab.addTab(self.plot_page, str(self.port) if self.port is not None else "Port")
+        self.plot_tab.addTab(
+            self.plot_page, str(self.port) if self.port is not None else "Port"
+        )
         self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
         self.plot_tab.setStyleSheet(
             "QTabBar::tab:selected {background: white; color: black;}"
@@ -188,7 +190,7 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
-        
+
         self.__center_window__()
         self.showMaximized()
 
@@ -199,11 +201,17 @@ class MainWindow(QMainWindow):
         self.exitAction.triggered.connect(self.close)
 
         self.exportOutputWindowAction = Action(None, "Export UART data", self)
-        self.exportOutputWindowAction.setStatusTip('Exports all the data received so far to a .txt file')
-        self.exportOutputWindowAction.triggered.connect(self.__save_received_data_to_file__)
+        self.exportOutputWindowAction.setStatusTip(
+            "Exports all the data received so far to a .txt file"
+        )
+        self.exportOutputWindowAction.triggered.connect(
+            self.__save_received_data_to_file__
+        )
 
         self.autoClearPlotAction = Action(None, "Auto-Clear Plot on Reset", self)
-        self.autoClearPlotAction.setStatusTip("Clears the plot when a new header is received/detected")
+        self.autoClearPlotAction.setStatusTip(
+            "Clears the plot when a new header is received/detected"
+        )
         self.autoClearPlotAction.triggered.connect(self.__on_auto_clear_plot_action__)
         self.autoClearPlotAction.setCheckable(True)
         self.autoClearPlotAction.setChecked(False)
@@ -464,7 +472,7 @@ class MainWindow(QMainWindow):
             if self.auto_clear_plot_on_header_change:
                 self.__clear_plot__()
                 self.plot_page.plot.legend.clear()
-            
+
             arrdata[0] = arrdata[0][1:]  # remove %
             self.plot_page.plot.set_header(arrdata)
         else:
@@ -533,5 +541,5 @@ class MainWindow(QMainWindow):
 
     def __save_received_data_to_file__(self):
         name = QtWidgets.QFileDialog.getSaveFileName(self, "Save file", ".", "*.txt;;*")
-        with open(name[0], 'w') as file:
+        with open(name[0], "w") as file:
             file.write(self.output_editor.toPlainText())
