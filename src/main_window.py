@@ -533,12 +533,16 @@ class MainWindow(QMainWindow):
             self.openClosePort.setToolTip("Close serial port")
 
     def __change_menubar_text_open_close_port__(self):
-        if self.serial_port.is_open:
-            self.openClosePort.setText("Close serial port")
-            self.openClosePort.setToolTip("Close serial port")
+        if self.serial_port:
+            self.openClosePort.setDisabled(False)
+            if self.serial_port.is_open:
+                self.openClosePort.setText("Close serial port")
+                self.openClosePort.setToolTip("Close serial port")
+            else:
+                self.openClosePort.setText("Open serial port")
+                self.openClosePort.setToolTip("Open serial port")
         else:
-            self.openClosePort.setText("Open serial port")
-            self.openClosePort.setToolTip("Open serial port")
+            self.openClosePort.setDisabled(True)
 
     def __on_auto_clear_plot_action__(self):
         if self.autoClearPlotAction.isChecked():
