@@ -8,12 +8,6 @@ import sys
 
 if sys.platform.startswith("win"):
     from usb_device_listener_windows import UsbDeviceChangeMonitor
-elif sys.platform.startswith("linux"):
-    # not implemented
-    pass
-elif sys.platform.startswith("darwin"):
-    # not implemented
-    pass
 else:
     raise ImportError(
         "This module does not support this platform '{}'".format(sys.platform)
