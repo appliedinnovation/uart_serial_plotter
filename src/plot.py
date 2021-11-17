@@ -25,7 +25,6 @@ class Plot(object):
         return pg.mkPen(index, len(self.trace_names))
 
     def set_header(self, header_names):
-        self.legend.clear()
         self.trace_names = header_names
         for i, name in enumerate(self.trace_names):
             if name in self.traces:

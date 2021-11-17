@@ -1,4 +1,5 @@
 import functools
+from PyQt5 import QtWidgets
 import re
 import serial
 import serial.tools.list_ports
@@ -197,6 +198,17 @@ class MainWindow(QMainWindow):
         self.exitAction.setShortcut("Ctrl+Q")
         self.exitAction.triggered.connect(self.close)
 
+        self.exportOutputWindowAction = Action(None, "Export UART data", self)
+        self.exportOutputWindowAction.setStatusTip('Exports all the data received so far to a .txt file')
+        self.exportOutputWindowAction.triggered.connect(self.__save_received_data_to_file__)
+
+        self.autoClearPlotAction = Action(None, "Auto-Clear Plot on Reset", self)
+        self.autoClearPlotAction.setStatusTip("Clears the plot when a new header is received/detected")
+        self.autoClearPlotAction.triggered.connect(self.__on_auto_clear_plot_action__)
+        self.autoClearPlotAction.setCheckable(True)
+        self.autoClearPlotAction.setChecked(False)
+        self.auto_clear_plot_on_header_change = False
+
         self.refreshAction = Action(None, "Refresh Ports", self)
         self.refreshAction.setStatusTip("Refresh Serial Ports")
         self.refreshAction.triggered.connect(self.__refresh_ports__)
@@ -234,10 +246,12 @@ class MainWindow(QMainWindow):
         self.menubar_init()
         self.menubar_add_menu("&File")
         self.menu_add_action("&File", self.importSceneAction)
+        self.menu_add_action("&File", self.exportOutputWindowAction)
         self.menu_add_action("&File", self.exitAction)
 
         self.menubar_add_menu("&View")
         self.menu_add_action("&View", self.rescaleAxesAction)
+        self.menu_add_action("&View", self.autoClearPlotAction)
 
         self.menubar_add_menu("&Serial")
         self.__refresh_ports__()
@@ -274,7 +288,7 @@ class MainWindow(QMainWindow):
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
         self.menu_add_action("&Serial", self.openClosePort)
-        self.__open_close_port__()
+        self.__change_menubar_text_open_close_port__()
 
     def __init_baudrate_menu__(self):
         serial_menu = self.menubar_get_menu("&Serial")
@@ -310,7 +324,7 @@ class MainWindow(QMainWindow):
             self.port = newPort
         self.__reopen_serial_port__()
         self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
-        self.__open_close_port__()
+        self.__change_menubar_text_open_close_port__()
 
     def __on_baudrate_changed__(self, newBaudRate):
         if newBaudRate != self.baudrate:
@@ -341,6 +355,7 @@ class MainWindow(QMainWindow):
         # These are enabled by default
         self.serial_port = serial.Serial(self.port, self.baudrate)
         self.__reopen_serial_port__()
+        self.__change_menubar_text_open_close_port__()
 
     def __clear_plot__(self):
         self.plot_page.plot.plot_item.clear()
@@ -368,7 +383,6 @@ class MainWindow(QMainWindow):
 
                 # Clear existing plot and set new header
                 self.__clear_plot__()
-                self.plot_page.plot.set_header(header)
 
                 dataset = []
                 for row in reader:
@@ -437,19 +451,21 @@ class MainWindow(QMainWindow):
         if len(arrdata) < 2:
             return
 
-        # determine if this line is a header or not (first value is string data)
+        # determine if this line is a header or not
+        # The line must start with `%`
         is_header = False
-        try:
-            dummy = float(arrdata[0])
-        except ValueError:
+        if strdata.startswith("%"):
             is_header = True
 
         if is_header:
             # an array of strings
-            # TODO(pranav): Conditionally clear the plot
-            # Add a checkbox to the menubar to control this behavior
-            self.__clear_plot__()
 
+            # Clear existing plot and set new header
+            if self.auto_clear_plot_on_header_change:
+                self.__clear_plot__()
+                self.plot_page.plot.legend.clear()
+            
+            arrdata[0] = arrdata[0][1:]  # remove %
             self.plot_page.plot.set_header(arrdata)
         else:
             # an array of numbers
@@ -498,3 +514,24 @@ class MainWindow(QMainWindow):
             self.log("Opened serial port")
             self.openClosePort.setText("Close serial port")
             self.openClosePort.setToolTip("Close serial port")
+
+    def __change_menubar_text_open_close_port__(self):
+        if self.serial_port.is_open:
+            self.openClosePort.setText("Close serial port")
+            self.openClosePort.setToolTip("Close serial port")
+        else:
+            self.openClosePort.setText("Open serial port")
+            self.openClosePort.setToolTip("Open serial port")
+
+    def __on_auto_clear_plot_action__(self):
+        if self.autoClearPlotAction.isChecked():
+            self.log("Auto-clear plot is enabled")
+            self.auto_clear_plot_on_header_change = True
+        else:
+            self.log("Auto-clear plot is disabled")
+            self.auto_clear_plot_on_header_change = False
+
+    def __save_received_data_to_file__(self):
+        name = QtWidgets.QFileDialog.getSaveFileName(self, "Save file", ".", "*.txt;;*")
+        with open(name[0], 'w') as file:
+            file.write(self.output_editor.toPlainText())
