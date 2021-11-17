@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         widget.setLayout(layout)
         self.setCentralWidget(widget)
-
+        
         self.__center_window__()
         self.showMaximized()
 
@@ -209,6 +209,17 @@ class MainWindow(QMainWindow):
         self.resetDevice = Action(None, "Toggle DTR/RTS", self)
         self.resetDevice.setStatusTip("Reset Device")
         self.resetDevice.triggered.connect(self.__reset_device__)
+
+        # Menu to open or close port
+        # Toggle port state
+        self.openClosePort = None
+        if self.port:
+            self.openClosePort = Action(None, "Close serial port", self)
+            self.openClosePort.setStatusTip("Close serial port")
+        else:
+            self.openClosePort = Action(None, "Open serial port", self)
+            self.openClosePort.setStatusTip("Open serial port")
+        self.openClosePort.triggered.connect(self.__open_close_port__)
 
         self.importSceneAction = Action(None, "Open", self)
         self.importSceneAction.setShortcut("Ctrl+O")
@@ -262,6 +273,8 @@ class MainWindow(QMainWindow):
         self.menu_add_action("&Serial", self.resetDevice)
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
+        self.menu_add_action("&Serial", self.openClosePort)
+        self.__open_close_port__()
 
     def __init_baudrate_menu__(self):
         serial_menu = self.menubar_get_menu("&Serial")
@@ -296,6 +309,8 @@ class MainWindow(QMainWindow):
         if newPort != self.port:
             self.port = newPort
         self.__reopen_serial_port__()
+        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
+        self.__open_close_port__()
 
     def __on_baudrate_changed__(self, newBaudRate):
         if newBaudRate != self.baudrate:
@@ -433,8 +448,8 @@ class MainWindow(QMainWindow):
             # an array of strings
             # TODO(pranav): Conditionally clear the plot
             # Add a checkbox to the menubar to control this behavior
-            # self.__clear_plot__()
-            
+            self.__clear_plot__()
+
             self.plot_page.plot.set_header(arrdata)
         else:
             # an array of numbers
@@ -471,3 +486,15 @@ class MainWindow(QMainWindow):
     def __on_usb_device_removal__(self):
         self.log("Detected USB Device Removal")
         self.__refresh_ports__()
+
+    def __open_close_port__(self):
+        if self.serial_port.is_open:
+            self.serial_port.close()
+            self.log("Closed serial port")
+            self.openClosePort.setText("Open serial port")
+            self.openClosePort.setToolTip("Open serial port")
+        else:
+            self.serial_port.open()
+            self.log("Opened serial port")
+            self.openClosePort.setText("Close serial port")
+            self.openClosePort.setToolTip("Close serial port")
