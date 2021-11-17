@@ -9,6 +9,7 @@ import sys
 
 from resource_helpers import path
 
+
 def main():
     app = QApplication(sys.argv)
     app.setWindowIcon(QtGui.QIcon(path("images/icon.png")))

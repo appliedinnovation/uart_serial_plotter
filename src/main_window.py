@@ -1,4 +1,5 @@
 import functools
+from PyQt5 import QtWidgets
 import re
 import serial
 import serial.tools.list_ports
@@ -7,12 +8,6 @@ import sys
 
 if sys.platform.startswith("win"):
     from usb_device_listener_windows import UsbDeviceChangeMonitor
-elif sys.platform.startswith("linux"):
-    # not implemented
-    pass
-elif sys.platform.startswith("darwin"):
-    # not implemented
-    pass
 else:
     raise ImportError(
         "This module does not support this platform '{}'".format(sys.platform)
@@ -80,10 +75,11 @@ class MainWindow(QMainWindow):
         #
         # If there is a port, open it
         if self.port:
-            print("Current port: " + str(self.port))
+            self.log("Current port: " + str(self.port))
             self.__reopen_serial_port__()
+            self.__change_menubar_text_open_close_port__()
         else:
-            print("No device connected")
+            self.log("No device connected")
 
         if sys.platform.startswith("win"):
             # TODO(pranav): Implement this class for Linux
@@ -134,6 +130,10 @@ class MainWindow(QMainWindow):
     def __init_ui__(self):
         QApplication.setStyle(QStyleFactory.create("Cleanlooks"))
         self.__init_font__()
+        self.log_editor = QTextEdit()
+        self.log_editor.setFont(self.font)
+        self.log_editor.setStyleSheet(self.__get_editor_stylesheet__())
+
         self.setWindowTitle("UART Serial Plotter")
 
         # Initialize the plot
@@ -142,12 +142,49 @@ class MainWindow(QMainWindow):
         self.plot_page.plot.canvas.getAxis("left").tickFont = self.font
         self.plot_page.plot.canvas.getAxis("bottom").tickFont = self.font
 
+        self.plot_tab = Tabs(self)
+        self.plot_tab.addTab(
+            self.plot_page, str(self.port) if self.port is not None else "Port"
+        )
+        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
+        self.plot_tab.setStyleSheet(
+            "QTabBar::tab:selected {background: white; color: black;}"
+            "QTabBar::tab {background: rgb(27,27,28); color: white;}"
+            "QTabWidget:pane {border: 1px solid gray;}"
+        )
+        self.plot_tab.setFont(self.font)
+
         self.__init_actions__()
         self.__init_menubar__()
 
         self.setStyleSheet("QMainWindow { background-color: rgb(27,27,28); }")
 
-        self.setCentralWidget(self.plot_page)
+        self.output_editor = QTextEdit()
+        self.output_editor.setFont(self.font)
+        self.output_editor.setStyleSheet(self.__get_editor_stylesheet__())
+
+        self.tabs = Tabs(self)
+        self.tabs.addTab(self.output_editor, "Output")
+        self.tabs.setTabText(0, "Output")
+        self.tabs.addTab(self.log_editor, "Log")
+        self.tabs.setTabText(1, "Log")
+        self.tabs.setStyleSheet(
+            "QTabBar::tab:selected {background: white; color: black;}"
+            "QTabBar::tab {background: rgb(27,27,28); color: white;}"
+            "QTabWidget:pane {border: 1px solid gray;}"
+        )
+        self.tabs.setFont(self.font)
+
+        splitter = QSplitter(QtCore.Qt.Vertical)
+        layout = QVBoxLayout()
+        splitter.setStyleSheet("QWidget {background: rgb(27, 27, 28);}")
+        splitter.addWidget(self.plot_tab)
+        splitter.addWidget(self.tabs)
+        layout.addWidget(splitter)
+
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setCentralWidget(widget)
 
         self.__center_window__()
         self.showMaximized()
@@ -157,6 +194,23 @@ class MainWindow(QMainWindow):
         self.exitAction.setStatusTip("Exit")
         self.exitAction.setShortcut("Ctrl+Q")
         self.exitAction.triggered.connect(self.close)
+
+        self.exportOutputWindowAction = Action(None, "Export UART data", self)
+        self.exportOutputWindowAction.setStatusTip(
+            "Exports all the data received so far to a .txt file"
+        )
+        self.exportOutputWindowAction.triggered.connect(
+            self.__save_received_data_to_file__
+        )
+
+        self.autoClearPlotAction = Action(None, "Clear Plot on Reset", self)
+        self.autoClearPlotAction.setStatusTip(
+            "Clears the plot when a new header is received/detected"
+        )
+        self.autoClearPlotAction.triggered.connect(self.__on_auto_clear_plot_action__)
+        self.autoClearPlotAction.setCheckable(True)
+        self.autoClearPlotAction.setChecked(False)
+        self.auto_clear_plot_on_header_change = False
 
         self.refreshAction = Action(None, "Refresh Ports", self)
         self.refreshAction.setStatusTip("Refresh Serial Ports")
@@ -171,6 +225,17 @@ class MainWindow(QMainWindow):
         self.resetDevice.setStatusTip("Reset Device")
         self.resetDevice.triggered.connect(self.__reset_device__)
 
+        # Menu to open or close port
+        # Toggle port state
+        self.openClosePort = None
+        if self.port:
+            self.openClosePort = Action(None, "Close serial port", self)
+            self.openClosePort.setStatusTip("Close serial port")
+        else:
+            self.openClosePort = Action(None, "Open serial port", self)
+            self.openClosePort.setStatusTip("Open serial port")
+        self.openClosePort.triggered.connect(self.__open_close_port__)
+
         self.importSceneAction = Action(None, "Open", self)
         self.importSceneAction.setShortcut("Ctrl+O")
         self.importSceneAction.setStatusTip("Import scene from CSV")
@@ -184,10 +249,12 @@ class MainWindow(QMainWindow):
         self.menubar_init()
         self.menubar_add_menu("&File")
         self.menu_add_action("&File", self.importSceneAction)
+        self.menu_add_action("&File", self.exportOutputWindowAction)
         self.menu_add_action("&File", self.exitAction)
 
         self.menubar_add_menu("&View")
         self.menu_add_action("&View", self.rescaleAxesAction)
+        self.menu_add_action("&View", self.autoClearPlotAction)
 
         self.menubar_add_menu("&Serial")
         self.__refresh_ports__()
@@ -223,6 +290,8 @@ class MainWindow(QMainWindow):
         self.menu_add_action("&Serial", self.resetDevice)
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
+        self.menu_add_action("&Serial", self.openClosePort)
+        self.__change_menubar_text_open_close_port__()
 
     def __init_baudrate_menu__(self):
         serial_menu = self.menubar_get_menu("&Serial")
@@ -239,29 +308,46 @@ class MainWindow(QMainWindow):
             self.baudrate_action_group.addAction(action)
         self.baudrate_action_group.setExclusive(True)
 
+    def log(self, msg):
+        cursor = self.log_editor.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.insertText(msg + "\n")
+        self.log_editor.setTextCursor(cursor)
+        self.log_editor.ensureCursorVisible()
+
+    def output(self, msg):
+        cursor = self.output_editor.textCursor()
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.insertText(msg + "\n")
+        self.output_editor.setTextCursor(cursor)
+        self.output_editor.ensureCursorVisible()
+
     def __on_port_changed__(self, newPort):
         if newPort != self.port:
             self.port = newPort
         self.__reopen_serial_port__()
+        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
+        self.__change_menubar_text_open_close_port__()
 
     def __on_baudrate_changed__(self, newBaudRate):
         if newBaudRate != self.baudrate:
             self.baudrate = newBaudRate
         self.__reopen_serial_port__()
+        self.__change_menubar_text_open_close_port__()
 
     def __refresh_ports__(self):
-        print("Refreshing serial ports")
+        self.log("Refreshing serial ports")
         self.serial_ports = list_serial_ports()
         self.__init_port_menu__()
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
-            print("No serial ports detected")
+            self.log("No serial ports detected")
         else:
             self.resetDevice.setEnabled(True)
-            print("One or more serial ports detected")
+            self.log("One or more serial ports detected")
 
     def __reset_device__(self):
-        print("Toggling DTR/RTS for device at serial port {}".format(self.port))
+        self.log("Toggling DTR/RTS for device at serial port {}".format(self.port))
 
         # Close if already open
         if self.serial_port:
@@ -273,6 +359,7 @@ class MainWindow(QMainWindow):
         # These are enabled by default
         self.serial_port = serial.Serial(self.port, self.baudrate)
         self.__reopen_serial_port__()
+        self.__change_menubar_text_open_close_port__()
 
     def __clear_plot__(self):
         self.plot_page.plot.plot_item.clear()
@@ -300,7 +387,6 @@ class MainWindow(QMainWindow):
 
                 # Clear existing plot and set new header
                 self.__clear_plot__()
-                self.plot_page.plot.set_header(header)
 
                 dataset = []
                 for row in reader:
@@ -311,7 +397,7 @@ class MainWindow(QMainWindow):
                     data.extend(signals)
                     dataset.append(data)
                 self.plot_page.plot.update_data(dataset)
-                print("Successfully imported from '{}'".format(path))
+                self.log("Successfully imported from '{}'".format(path))
 
     # window functions
     def __center_window__(self):
@@ -324,18 +410,21 @@ class MainWindow(QMainWindow):
         # Close if already open
         if self.serial_port:
             self.serial_port.close()
-            print("Closed serial port")
+            self.log("Closed serial port")
 
         # Open serial_port
         if self.port and self.baudrate:
-            print("Opening serial port {}, baud={}".format(self.port, self.baudrate))
+            self.log("Opening serial port {}, baud={}".format(self.port, self.baudrate))
             self.serial_port = serial.Serial()
             self.serial_port.port = self.port
             self.serial_port.baudrate = self.baudrate
             # Disable hardware flow control
             self.serial_port.setRTS(False)
             self.serial_port.setDTR(False)
-            self.serial_port.open()
+            try:
+                self.serial_port.open()
+            except Exception as e:
+                self.log(str(e))
 
     def __update_plot__(self):
         def escape_ansi(line):
@@ -360,6 +449,7 @@ class MainWindow(QMainWindow):
 
         strdata = escape_ansi(strdata)
         strdata = strdata.strip()
+        self.output(strdata)
         arrdata = strdata.split(",")
 
         # There must be at least 2 columns
@@ -368,16 +458,21 @@ class MainWindow(QMainWindow):
         if len(arrdata) < 2:
             return
 
-        # determine if this line is a header or not (first value is string data)
+        # determine if this line is a header or not
+        # The line must start with `%`
         is_header = False
-        try:
-            dummy = float(arrdata[0])
-        except ValueError:
+        if strdata.startswith("%"):
             is_header = True
 
         if is_header:
             # an array of strings
-            self.__clear_plot__()
+
+            # Clear existing plot and set new header
+            if self.auto_clear_plot_on_header_change:
+                self.__clear_plot__()
+                self.plot_page.plot.legend.clear()
+
+            arrdata[0] = arrdata[0][1:]  # remove %
             self.plot_page.plot.set_header(arrdata)
         else:
             # an array of numbers
@@ -403,14 +498,56 @@ class MainWindow(QMainWindow):
                 else:
                     # Ignore it, this is not a valid datapoint
                     # datapoint could be an empty list
-                    print("Not a valid datapoint: '{}'".format(strdata))
+                    self.log("Not a valid datapoint: '{}'".format(strdata))
             except:
                 pass
 
     def __on_usb_device_arrival__(self):
-        print("Detected New USB Device")
+        self.log("Detected New USB Device")
         self.__refresh_ports__()
 
     def __on_usb_device_removal__(self):
-        print("Detected USB Device Removal")
+        self.log("Detected USB Device Removal")
         self.__refresh_ports__()
+
+    def __open_close_port__(self):
+        if self.serial_port.is_open:
+            self.serial_port.close()
+            self.log("Closed serial port")
+            self.openClosePort.setText("Open serial port")
+            self.openClosePort.setToolTip("Open serial port")
+        else:
+            try:
+                self.serial_port.open()
+            except Exception as e:
+                self.log(str(e))
+                return
+            self.log("Opened serial port")
+            self.openClosePort.setText("Close serial port")
+            self.openClosePort.setToolTip("Close serial port")
+
+    def __change_menubar_text_open_close_port__(self):
+        if self.serial_port:
+            self.openClosePort.setDisabled(False)
+            if self.serial_port.is_open:
+                self.openClosePort.setText("Close serial port")
+                self.openClosePort.setToolTip("Close serial port")
+            else:
+                self.openClosePort.setText("Open serial port")
+                self.openClosePort.setToolTip("Open serial port")
+        else:
+            self.openClosePort.setDisabled(True)
+
+    def __on_auto_clear_plot_action__(self):
+        if self.autoClearPlotAction.isChecked():
+            self.log("Clear plot on reset is enabled")
+            self.auto_clear_plot_on_header_change = True
+        else:
+            self.log("Clear plot on reset is disabled")
+            self.auto_clear_plot_on_header_change = False
+
+    def __save_received_data_to_file__(self):
+        name = QtWidgets.QFileDialog.getSaveFileName(self, "Save file", ".", "*.txt;;*")
+        if len(name) > 0 and name[0] != '':
+            with open(name[0], "w") as file:
+                file.write(self.output_editor.toPlainText())
