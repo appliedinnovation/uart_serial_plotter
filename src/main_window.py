@@ -203,7 +203,7 @@ class MainWindow(QMainWindow):
             self.__save_received_data_to_file__
         )
 
-        self.autoClearPlotAction = Action(None, "Auto-Clear Plot on Reset", self)
+        self.autoClearPlotAction = Action(None, "Clear Plot on Reset", self)
         self.autoClearPlotAction.setStatusTip(
             "Clears the plot when a new header is received/detected"
         )
@@ -540,13 +540,14 @@ class MainWindow(QMainWindow):
 
     def __on_auto_clear_plot_action__(self):
         if self.autoClearPlotAction.isChecked():
-            self.log("Auto-clear plot is enabled")
+            self.log("Clear plot on reset is enabled")
             self.auto_clear_plot_on_header_change = True
         else:
-            self.log("Auto-clear plot is disabled")
+            self.log("Clear plot on reset is disabled")
             self.auto_clear_plot_on_header_change = False
 
     def __save_received_data_to_file__(self):
         name = QtWidgets.QFileDialog.getSaveFileName(self, "Save file", ".", "*.txt;;*")
-        with open(name[0], "w") as file:
-            file.write(self.output_editor.toPlainText())
+        if len(name) > 0 and name[0] != '':
+            with open(name[0], "w") as file:
+                file.write(self.output_editor.toPlainText())
