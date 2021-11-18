@@ -338,6 +338,15 @@ class MainWindow(QMainWindow):
     def __refresh_ports__(self):
         self.log("Refreshing serial ports")
         self.serial_ports = list_serial_ports()
+
+        # If the device that was being monitored has
+        # now been removed, close the port
+        if self.port not in self.serial_ports:
+            self.port = None
+            if self.serial_port:
+                self.serial_port.close()
+            self.serial_port = None
+
         self.__init_port_menu__()
         if len(self.serial_ports) == 0:
             self.resetDevice.setEnabled(False)
@@ -505,16 +514,20 @@ class MainWindow(QMainWindow):
     def __on_usb_device_arrival__(self):
         self.log("Detected New USB Device")
         self.__refresh_ports__()
+        self.__change_menubar_text_open_close_port__()
 
     def __on_usb_device_removal__(self):
         self.log("Detected USB Device Removal")
         self.__refresh_ports__()
+        self.__change_menubar_text_open_close_port__()
+        if not self.serial_port:
+            self.log("Serial port is now None")
 
     def __open_close_port__(self):
         if self.serial_port.is_open:
             self.serial_port.close()
             self.log("Closed serial port")
-            self.openClosePort.setText("Open serial port")
+            self.openClosePort.setText("Open " + str(self.port))
             self.openClosePort.setToolTip("Open serial port")
         else:
             try:
@@ -523,19 +536,21 @@ class MainWindow(QMainWindow):
                 self.log(str(e))
                 return
             self.log("Opened serial port")
-            self.openClosePort.setText("Close serial port")
+            self.openClosePort.setText("Close " + str(self.port))
             self.openClosePort.setToolTip("Close serial port")
 
     def __change_menubar_text_open_close_port__(self):
         if self.serial_port:
             self.openClosePort.setDisabled(False)
             if self.serial_port.is_open:
-                self.openClosePort.setText("Close serial port")
+                self.openClosePort.setText("Close " + str(self.port))
                 self.openClosePort.setToolTip("Close serial port")
             else:
-                self.openClosePort.setText("Open serial port")
+                self.openClosePort.setText("Open " + str(self.port))
                 self.openClosePort.setToolTip("Open serial port")
         else:
+            self.openClosePort.setText("Open serial port")
+            self.openClosePort.setToolTip("Open serial port")
             self.openClosePort.setDisabled(True)
 
     def __on_auto_clear_plot_action__(self):
