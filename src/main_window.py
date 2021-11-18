@@ -151,9 +151,9 @@ class MainWindow(QMainWindow):
 
         self.plot_tab = Tabs(self)
         self.plot_tab.addTab(
-            self.plot_page, str(self.port) if self.port is not None else "Port"
+            self.plot_page, str(self.port) if self.port is not None else "Untitled"
         )
-        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Port")
+        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Untitled")
         self.plot_tab.setStyleSheet(
             "QTabBar::tab:selected {background: white; color: black;}"
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
