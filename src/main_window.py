@@ -393,15 +393,17 @@ class MainWindow(QMainWindow):
             with open(path, "r") as csvfile:
                 reader = csv.reader(csvfile)
 
+                # Clear existing plot and set new header
+                self.__clear_plot__()
+                self.plot_page.plot.legend.clear()
+
                 # Parse Header
                 # Expected: "Foo_x","Foo_y","Bar_x","Bar_y",...
                 # Convert to: "Foo","Bar",...
                 header = ["_".join(h.strip().split("_")[:-1]) for h in next(reader)]
                 header = list(dict.fromkeys(header))
                 header.insert(0, "Time")
-
-                # Clear existing plot and set new header
-                self.__clear_plot__()
+                self.plot_page.plot.set_header(header)
 
                 dataset = []
                 for row in reader:
