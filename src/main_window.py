@@ -1,4 +1,5 @@
 import functools
+import os
 from PyQt5 import QtWidgets
 import re
 import serial
@@ -390,6 +391,12 @@ class MainWindow(QMainWindow):
 
         if dialog.exec_() == QDialog.Accepted:
             path = dialog.selectedFiles()[0]
+
+            # Set plot tab title to filename
+            filename = os.path.basename(path)
+            self.plot_tab.setTabText(0, filename)
+            self.plot_tab.setToolTip(path)
+
             with open(path, "r") as csvfile:
                 reader = csv.reader(csvfile)
 
