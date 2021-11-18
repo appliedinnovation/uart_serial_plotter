@@ -18,8 +18,5 @@ This project provides [pyqtgraph](https://www.pyqtgraph.org/) based applications
 ## Quick Start
 
 ```console
-foo@bar:~$ python setup.py install
-foo@bar:~$ uart_serial_plotter
+foo@bar:~$ python src/main.py
 ```
-
-![image](https://raw.githubusercontent.com/appliedinnovation/uart_serial_plotter/master/images/demo.png?token=ACAPAK35YQ7V2T7TUKFU2K3BSHA4W)
