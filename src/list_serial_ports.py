@@ -9,7 +9,7 @@ def list_serial_ports():
     :returns:
         A list of the serial ports available on the system
     """
-    port_descriptors = ["USB Serial Port", "TTL232R-3V3", "USB to UART", "usbserial"]
+    port_descriptors = ["USB Serial Port", "TTL232R-3V3", "USB to UART", "usbserial", "RS232"]
     ports = list(serial.tools.list_ports.comports())
     result = []
     for p in ports:
