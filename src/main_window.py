@@ -169,6 +169,7 @@ class MainWindow(QMainWindow):
         self.output_editor = QTextEdit()
         self.output_editor.setFont(self.font)
         self.output_editor.setStyleSheet(self.__get_editor_stylesheet__())
+        self.received_data = ""
 
         self.tabs = Tabs(self)
         self.tabs.addTab(self.output_editor, "Output")
@@ -473,7 +474,9 @@ class MainWindow(QMainWindow):
 
         strdata = escape_ansi(strdata)
         strdata = strdata.strip()
-        self.output(strdata)
+        # self.received_data += strdata
+        # self.output(strdata)
+        # print(strdata)
         arrdata = strdata.split(",")
 
         # There must be at least 2 columns
@@ -503,19 +506,7 @@ class MainWindow(QMainWindow):
             try:
                 datapoint = [float(x.strip()) for x in arrdata]
 
-                if len(self.plot_page.plot.trace_names) == 0 or len(
-                    self.plot_page.plot.trace_names
-                ) < len(datapoint):
-                    # Header not set
-                    # Maybe we didn't receive it over UART
-                    # Set the Header to be: "Time","Signal_1", "Signal_2",...
-                    header = ["Time"]
-                    header.extend(
-                        ["Signal_" + str(i) for i in range(len(datapoint) - 1)]
-                    )
-                    self.plot_page.plot.set_header(header)
-                    self.plot_page.plot.update_data([datapoint])
-                elif len(self.plot_page.plot.trace_names) == len(datapoint):
+                if len(self.plot_page.plot.trace_names) == len(datapoint):
                     # This is a good datapoint
                     # Matches the exact number of cols as the header
                     self.plot_page.plot.update_data([datapoint])
