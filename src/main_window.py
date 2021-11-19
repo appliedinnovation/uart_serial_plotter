@@ -1,4 +1,4 @@
-import functools
+mport functools
 import os
 from PyQt5 import QtWidgets
 import re
@@ -169,7 +169,6 @@ class MainWindow(QMainWindow):
         self.output_editor = QTextEdit()
         self.output_editor.setFont(self.font)
         self.output_editor.setStyleSheet(self.__get_editor_stylesheet__())
-        self.received_data = ""
 
         self.tabs = Tabs(self)
         self.tabs.addTab(self.output_editor, "Output")
@@ -474,9 +473,7 @@ class MainWindow(QMainWindow):
 
         strdata = escape_ansi(strdata)
         strdata = strdata.strip()
-        # self.received_data += strdata
-        # self.output(strdata)
-        # print(strdata)
+        self.output(strdata)
         arrdata = strdata.split(",")
 
         # There must be at least 2 columns
