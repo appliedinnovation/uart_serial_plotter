@@ -20,3 +20,8 @@ This project provides [pyqtgraph](https://www.pyqtgraph.org/) based applications
 ```console
 foo@bar:~$ python src/main.py
 ```
+
+
+## Notes:
+
+* For M1 Macs, you can either run the MacOS release or, if you are developing / would like to run source, you may need to follow the instructions here to use a python environment within rosetta: https://stackoverflow.com/questions/65901162/how-can-i-run-pyqt5-on-my-mac-with-m1chip
