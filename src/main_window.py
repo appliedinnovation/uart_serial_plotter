@@ -153,9 +153,9 @@ class MainWindow(QMainWindow):
         self.plot_tab.addTab(
             self.plot_page, str(self.port) if self.port is not None else "Untitled"
         )
-        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "Untitled")
+        self.plot_tab.setTabText(0, str(self.port) if self.port is not None else "No Port / File Selected")
         self.plot_tab.setStyleSheet(
-            "QTabBar::tab:selected {background: white; color: black;}"
+            "QTabBar::tab:selected {font-weight: bold}"
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
             "QTabWidget:pane {border: 1px solid gray;}"
         )
@@ -176,7 +176,7 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.log_editor, "Log")
         self.tabs.setTabText(1, "Log")
         self.tabs.setStyleSheet(
-            "QTabBar::tab:selected {background: white; color: black;}"
+            "QTabBar::tab:selected {font-weight: bold}"
             "QTabBar::tab {background: rgb(27,27,28); color: white;}"
             "QTabWidget:pane {border: 1px solid gray;}"
         )
