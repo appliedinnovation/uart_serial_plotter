@@ -269,10 +269,10 @@ class MainWindow(QMainWindow):
     def __init_port_menu__(self):
         serial_menu = self.menubar_get_menu("&Serial")
         serial_menu.clear()
+        serial_menu.addAction(self.refreshAction)
         ports_submenu = serial_menu.addMenu("&Port")
 
         # Serial ports submenu
-        ports_submenu.addAction(self.refreshAction)
         ports_submenu.addSeparator()
         if len(self.serial_ports):
             self.ports_action_group = QActionGroup(self)
