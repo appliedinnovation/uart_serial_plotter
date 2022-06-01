@@ -248,6 +248,11 @@ class MainWindow(QMainWindow):
         self.importSceneAction.setStatusTip("Import scene from CSV")
         self.importSceneAction.triggered.connect(self.__import_scene__)
 
+        self.openRawAction = Action(None, "Open Raw CSV", self)
+        self.openRawAction.setShortcut("Ctrl+Shift+O")
+        self.openRawAction.setStatusTip("Import raw CSV - time as first column, data as other colums (not exported by this tool)")
+        self.openRawAction.triggered.connect(self.__open_raw__)
+
     def __rescale_axes__(self):
         self.plot_page.plot.canvas.getPlotItem().disableAutoRange()
         self.plot_page.plot.canvas.getPlotItem().enableAutoRange()
@@ -256,6 +261,7 @@ class MainWindow(QMainWindow):
         self.menubar_init()
         self.menubar_add_menu("&File")
         self.menu_add_action("&File", self.importSceneAction)
+        self.menu_add_action("&File", self.openRawAction)
         self.menu_add_action("&File", self.exportOutputWindowAction)
         self.menu_add_action("&File", self.exitAction)
 
@@ -382,6 +388,46 @@ class MainWindow(QMainWindow):
         self.plot_page.plot.traces = {}
         self.plot_page.plot.trace_names = []
         self.plot_page.plot.data = {}
+
+    def __open_raw__(self):
+        dialog = QFileDialog()
+        fmt = "csv"
+        dialog.setDefaultSuffix(fmt)
+        dialog.setNameFilters([f"{fmt} (*.{fmt})"])
+
+        if dialog.exec_() == QDialog.Accepted:
+            path = dialog.selectedFiles()[0]
+
+            # Set plot tab title to filename
+            filename = os.path.basename(path)
+            self.plot_tab.setTabText(0, filename)
+            self.plot_tab.setToolTip(path)
+
+            with open(path, "r") as csvfile:
+                reader = csv.reader(csvfile)
+
+                # Clear existing plot and set new header
+                self.__clear_plot__()
+                self.plot_page.plot.legend.clear()
+
+                # Parse Header
+                # Expected: Time, Foo, Bar, Baz, ...
+                # Note: first line (header) may be optionally prepended with %
+                # Convert to: "Foo","Bar",...
+                header = [h.replace('%', '').strip() for h in next(reader)]
+                header = list(dict.fromkeys(header))
+                self.plot_page.plot.set_header(header)
+
+                dataset = []
+                for row in reader:
+                    time = float(row[0])
+                    signals = [float(x) for x in row[1:]]
+                    data = []
+                    data.append(time)
+                    data.extend(signals)
+                    dataset.append(data)
+                self.plot_page.plot.update_data(dataset)
+                self.log("Successfully imported from '{}'".format(path))
 
     def __import_scene__(self):
         dialog = QFileDialog()
