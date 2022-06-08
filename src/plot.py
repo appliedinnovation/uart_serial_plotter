@@ -39,7 +39,7 @@ class Plot(object):
         for name in self.trace_names:
             # initialize the data for this trace
             if name not in self.data:
-                self.data[name] = {"x": [0], "y": [0]}
+                self.data[name] = {"x": [], "y": []}
 
         for row in data:
             time = row[0]
