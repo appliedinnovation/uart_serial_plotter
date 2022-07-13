@@ -5,6 +5,9 @@ import re
 import serial
 import serial.tools.list_ports
 
+import queue
+import threading
+
 import sys
 
 from PyQt5 import QtGui
@@ -29,6 +32,7 @@ from list_serial_ports import list_serial_ports, list_serial_ports_by_descriptor
 import csv
 from tabs import Tabs
 
+q = queue.Queue(1)
 
 class MainWindow(QMainWindow):
 
@@ -48,6 +52,8 @@ class MainWindow(QMainWindow):
         self.force_gauge_baudrate = 115200
         self.force_gauge_header = 'Force (lbf)'
         self.force_gauge_value = 0
+        self.force_gauge_thread = None
+        self.run_force_gauge_thread = False
 
         # for the normal data stream
         self.serial_port = None
@@ -466,6 +472,11 @@ class MainWindow(QMainWindow):
         self.move(qr.topLeft())
 
     def __reopen_force_gauge_serial_port__(self):
+        # stop task if already running
+        self.run_force_gauge_thread = False
+        if self.force_gauge_thread:
+            self.force_gauge_thread.join()
+
         # Close if already open
         if self.force_gauge_serial_port:
             self.force_gauge_serial_port.close()
@@ -482,11 +493,16 @@ class MainWindow(QMainWindow):
         else:
             self.log("No force gauge ports found!")
             return
+        # create the thread and such
+        self.force_gauge_thread = threading.Thread(target = self.__open_and_read_force_guage__)
+        self.run_force_gauge_thread = True
+        self.force_gauge_thread.start()
 
+    def __open_and_read_force_guage__(self):
         # Open serial_port
         if self.force_gauge_port and self.force_gauge_baudrate:
             self.log("Opening force_gauge serial port {}, baud={}".format(self.force_gauge_port, self.force_gauge_baudrate))
-            self.force_gauge_serial_port = serial.Serial()
+            self.force_gauge_serial_port = serial.Serial() # timeout=0) # return immediately regardless of if there are bytes or not
             self.force_gauge_serial_port.port = self.force_gauge_port
             self.force_gauge_serial_port.baudrate = self.baudrate
             # Disable hardware flow control
@@ -494,8 +510,18 @@ class MainWindow(QMainWindow):
             self.force_gauge_serial_port.setDTR(False)
             try:
                 self.force_gauge_serial_port.open()
-                # write a '?' to queue data
-                self.force_gauge_serial_port.write(b'?\r')
+                while self.run_force_gauge_thread:
+                    if self.force_gauge_serial_port:
+                        # write a '?' to queue data
+                        self.force_gauge_serial_port.write(b'?\r')
+                        force_gauge_data = self.force_gauge_serial_port.readline()
+                        try:
+                            self.force_gauge_value = float(force_gauge_data.split()[0])
+                        except:
+                            print("Could not parse force gauge string: '{}'".format(force_gauge_data))
+                            self.force_gauge_value = 0
+                    else:
+                        break
             except Exception as e:
                 self.log(str(e))
 
@@ -538,15 +564,6 @@ class MainWindow(QMainWindow):
         # read a line from serial port
         strdata = self.serial_port.readline()
 
-        if self.force_gauge_serial_port:
-            force_gauge_data = self.force_gauge_serial_port.readline()
-            try:
-                self.force_gauge_value = float(force_gauge_data.split()[0])
-            except:
-                print("Could not parse force gauge string: '{}'".format(force_gauge_data))
-            # write a '?' to queue data
-            self.force_gauge_serial_port.write(b'?\r')
-
         # and decode it
         if sys.version_info >= (3, 0):
             strdata = strdata.decode("utf-8", "backslashreplace")
@@ -578,14 +595,14 @@ class MainWindow(QMainWindow):
 
             arrdata[0] = arrdata[0][1:]  # remove %
             # add the force gauge header
-            arrdata.push_back(self.force_gauge_header)
+            arrdata.append(self.force_gauge_header)
             self.plot_page.plot.set_header(arrdata)
         else:
             # an array of numbers
             try:
                 datapoint = [float(x.strip()) for x in arrdata]
                 # add the force gauge value
-                datapoint.push_back(self.force_gauge_value)
+                datapoint.append(self.force_gauge_value)
 
                 if len(self.plot_page.plot.trace_names) == len(datapoint):
                     # This is a good datapoint
@@ -595,6 +612,8 @@ class MainWindow(QMainWindow):
                     # Ignore it, this is not a valid datapoint
                     # datapoint could be an empty list
                     self.log("Not a valid datapoint: '{}'".format(strdata))
+                    self.log('\ttrace_names: {}'.format(self.plot_page.plot.trace_names))
+                    self.log('\tdatapoint length: {}'.format(len(datapoint)))
             except:
                 pass
 
