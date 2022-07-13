@@ -495,7 +495,7 @@ class MainWindow(QMainWindow):
             try:
                 self.force_gauge_serial_port.open()
                 # write a '?' to queue data
-                self.force_gauge_serial_port.write('?\r')
+                self.force_gauge_serial_port.write(b'?\r')
             except Exception as e:
                 self.log(str(e))
 
@@ -545,7 +545,7 @@ class MainWindow(QMainWindow):
             except:
                 print("Could not parse force gauge string: '{}'".format(force_gauge_data))
             # write a '?' to queue data
-            self.force_gauge_serial_port.write('?\r')
+            self.force_gauge_serial_port.write(b'?\r')
 
         # and decode it
         if sys.version_info >= (3, 0):
