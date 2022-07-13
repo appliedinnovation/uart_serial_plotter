@@ -7,19 +7,6 @@ import serial.tools.list_ports
 
 import sys
 
-if sys.platform.startswith("win"):
-    from usb_device_listener_windows import UsbDeviceChangeMonitor
-elif sys.platform.startswith("linux"):
-    # not implemented
-    pass
-elif sys.platform.startswith("darwin"):
-    # not implemented
-    pass
-else:
-    raise ImportError(
-        "This module does not support this platform '{}'".format(sys.platform)
-    )
-
 from PyQt5 import QtGui
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (
@@ -38,7 +25,7 @@ from PyQt5.QtWidgets import (
 
 from action import Action
 from pages import PlotPage
-from list_serial_ports import list_serial_ports
+from list_serial_ports import list_serial_ports, list_serial_ports_by_descriptors
 import csv
 from tabs import Tabs
 
@@ -55,6 +42,14 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        # for force gauge
+        self.force_gauge_serial_port = None
+        self.force_gauge_port = None
+        self.force_gauge_baudrate = 115200
+        self.force_gauge_header = 'Force (lbf)'
+        self.force_gauge_value = 0
+
+        # for the normal data stream
         self.serial_port = None
         self.port = None
         self.baudrate = 115200
@@ -87,12 +82,6 @@ class MainWindow(QMainWindow):
             self.__change_menubar_text_open_close_port__()
         else:
             self.log("No device connected")
-
-        if sys.platform.startswith("win"):
-            # TODO(pranav): Implement this class for Linux
-            UsbDeviceChangeMonitor(
-                self.__on_usb_device_arrival__, self.__on_usb_device_removal__
-            )
 
         self.update_timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
         self.update_timer.timeout.connect(self.__update_plot__)
@@ -476,7 +465,43 @@ class MainWindow(QMainWindow):
         qr.moveCenter(cp)
         self.move(qr.topLeft())
 
+    def __reopen_force_gauge_serial_port__(self):
+        # Close if already open
+        if self.force_gauge_serial_port:
+            self.force_gauge_serial_port.close()
+            self.log("Closed force_gauge serial port")
+
+        # try to find the right serial port
+        force_gauge_ports = list_serial_ports_by_descriptors(["Mark-10"])
+
+        if len(force_gauge_ports) == 1:
+            self.force_gauge_port = force_gauge_ports[0]
+        elif len(force_gauge_ports) > 1:
+            self.log("Too many gauge ports found: {}".format(force_gauge_ports))
+            return
+        else:
+            self.log("No force gauge ports found!")
+            return
+
+        # Open serial_port
+        if self.force_gauge_port and self.force_gauge_baudrate:
+            self.log("Opening force_gauge serial port {}, baud={}".format(self.force_gauge_port, self.force_gauge_baudrate))
+            self.force_gauge_serial_port = serial.Serial()
+            self.force_gauge_serial_port.port = self.force_gauge_port
+            self.force_gauge_serial_port.baudrate = self.baudrate
+            # Disable hardware flow control
+            self.force_gauge_serial_port.setRTS(False)
+            self.force_gauge_serial_port.setDTR(False)
+            try:
+                self.force_gauge_serial_port.open()
+                # write a '?' to queue data
+                self.force_gauge_serial_port.write('?\r')
+            except Exception as e:
+                self.log(str(e))
+
     def __reopen_serial_port__(self):
+        self.__reopen_force_gauge_serial_port__()
+
         # Close if already open
         if self.serial_port:
             self.serial_port.close()
@@ -513,6 +538,15 @@ class MainWindow(QMainWindow):
         # read a line from serial port
         strdata = self.serial_port.readline()
 
+        if self.force_gauge_serial_port:
+            force_gauge_data = self.force_gauge_serial_port.readline()
+            try:
+                self.force_gauge_value = float(force_gauge_data.split()[0])
+            except:
+                print("Could not parse force gauge string: '{}'".format(force_gauge_data))
+            # write a '?' to queue data
+            self.force_gauge_serial_port.write('?\r')
+
         # and decode it
         if sys.version_info >= (3, 0):
             strdata = strdata.decode("utf-8", "backslashreplace")
@@ -543,11 +577,15 @@ class MainWindow(QMainWindow):
                 self.plot_page.plot.legend.clear()
 
             arrdata[0] = arrdata[0][1:]  # remove %
+            # add the force gauge header
+            arrdata.push_back(self.force_gauge_header)
             self.plot_page.plot.set_header(arrdata)
         else:
             # an array of numbers
             try:
                 datapoint = [float(x.strip()) for x in arrdata]
+                # add the force gauge value
+                datapoint.push_back(self.force_gauge_value)
 
                 if len(self.plot_page.plot.trace_names) == len(datapoint):
                     # This is a good datapoint
@@ -559,18 +597,6 @@ class MainWindow(QMainWindow):
                     self.log("Not a valid datapoint: '{}'".format(strdata))
             except:
                 pass
-
-    def __on_usb_device_arrival__(self):
-        self.log("Detected New USB Device")
-        self.__refresh_ports__()
-        self.__change_menubar_text_open_close_port__()
-
-    def __on_usb_device_removal__(self):
-        self.log("Detected USB Device Removal")
-        self.__refresh_ports__()
-        self.__change_menubar_text_open_close_port__()
-        if not self.serial_port:
-            self.log("Serial port is now None")
 
     def __open_close_port__(self):
         if self.serial_port.is_open:
