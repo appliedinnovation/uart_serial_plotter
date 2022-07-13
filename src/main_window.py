@@ -521,9 +521,13 @@ class MainWindow(QMainWindow):
                             print("Could not parse force gauge string: '{}'".format(force_gauge_data))
                             self.force_gauge_value = 0
                     else:
+                        self.log('Asked to quit force gauge thread')
                         break
             except Exception as e:
                 self.log(str(e))
+        else:
+            self.log('Invalid force_gauge_port or baudrate')
+        self.log('Quitting force gauge thread')
 
     def __reopen_serial_port__(self):
         self.__reopen_force_gauge_serial_port__()
