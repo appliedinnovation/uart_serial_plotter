@@ -5,20 +5,14 @@ import re
 import serial
 import serial.tools.list_ports
 
+import threading
+import queue
+
 import sys
 
-if sys.platform.startswith("win"):
-    from usb_device_listener_windows import UsbDeviceChangeMonitor
-elif sys.platform.startswith("linux"):
-    # not implemented
-    pass
-elif sys.platform.startswith("darwin"):
-    # not implemented
-    pass
-else:
-    raise ImportError(
-        "This module does not support this platform '{}'".format(sys.platform)
-    )
+def escape_ansi(line):
+    ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
+    return ansi_escape.sub("", str(line))
 
 from PyQt5 import QtGui
 from PyQt5 import QtCore
@@ -55,6 +49,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.serial_data_queue = queue.Queue()
+        self.run_serial_port_thread = False
+        self.serial_port_thread = None
         self.serial_port = None
         self.port = None
         self.baudrate = 115200
@@ -87,12 +84,6 @@ class MainWindow(QMainWindow):
             self.__change_menubar_text_open_close_port__()
         else:
             self.log("No device connected")
-
-        if sys.platform.startswith("win"):
-            # TODO(pranav): Implement this class for Linux
-            UsbDeviceChangeMonitor(
-                self.__on_usb_device_arrival__, self.__on_usb_device_removal__
-            )
 
         self.update_timer = QtCore.QTimer(timerType=0)  # Qt.PreciseTimer
         self.update_timer.timeout.connect(self.__update_plot__)
@@ -477,14 +468,27 @@ class MainWindow(QMainWindow):
         self.move(qr.topLeft())
 
     def __reopen_serial_port__(self):
+        # stop serial port thread if running
+        self.run_serial_port_thread = False
+        if self.serial_port_thread:
+            self.log("Asking serial port thread to stop")
+            self.serial_port_thread.join()
+            self.log("Stopped serial port thread")
+
         # Close if already open
         if self.serial_port:
             self.serial_port.close()
             self.log("Closed serial port")
 
+        # start a thread to open and read from the serial port
+        self.serial_port_thread = threading.Thread(target = self.__open_and_read_serial_port__)
+        self.run_serial_port_thread = True
+        self.serial_port_thread.start()
+
+    def __open_and_read_serial_port__(self):
         # Open serial_port
         if self.port and self.baudrate:
-            self.log("Opening serial port {}, baud={}".format(self.port, self.baudrate))
+            print("Opening serial port {}, baud={}".format(self.port, self.baudrate))
             self.serial_port = serial.Serial()
             self.serial_port.port = self.port
             self.serial_port.baudrate = self.baudrate
@@ -493,84 +497,71 @@ class MainWindow(QMainWindow):
             self.serial_port.setDTR(False)
             try:
                 self.serial_port.open()
+                while self.run_serial_port_thread:
+                    if self.serial_port.inWaiting():
+                        serial_port_data = self.serial_port.readline()
+                        # and decode it
+                        if sys.version_info >= (3, 0):
+                            serial_port_data = serial_port_data.decode("utf-8", "backslashreplace")
+                        serial_port_data = escape_ansi(serial_port_data)
+                        serial_port_data = serial_port_data.strip()
+                        self.serial_data_queue.put_nowait(serial_port_data)
             except Exception as e:
-                self.log(str(e))
+                print("Serial port thread exception: " + str(e))
+        else:
+            print("Invalid serial port")
+        print("Serial port thread exiting")
 
     def __update_plot__(self):
-        def escape_ansi(line):
-            ansi_escape = re.compile(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]")
-            return ansi_escape.sub("", str(line))
-
-        if not self.serial_port:
-            return
-
-        try:
-            if self.serial_port.inWaiting() == 0:
-                return  # do nothing
-        except:
-            return
-
-        # read a line from serial port
-        strdata = self.serial_port.readline()
-
-        # and decode it
-        if sys.version_info >= (3, 0):
-            strdata = strdata.decode("utf-8", "backslashreplace")
-
-        strdata = escape_ansi(strdata)
-        strdata = strdata.strip()
-        self.output(strdata)
-        arrdata = strdata.split(",")
-
-        # There must be at least 2 columns
-        # Time,Signal_1
-        # Then it is (possibly) a valid timeseries
-        if len(arrdata) < 2:
-            return
-
-        # determine if this line is a header or not
-        # The line must start with `%`
-        is_header = False
-        if strdata.startswith("%"):
-            is_header = True
-
-        if is_header:
-            # an array of strings
-
-            # Clear existing plot and set new header
-            if self.auto_clear_plot_on_header_change:
-                self.__clear_plot__()
-                self.plot_page.plot.legend.clear()
-
-            arrdata[0] = arrdata[0][1:]  # remove %
-            self.plot_page.plot.set_header(arrdata)
-        else:
-            # an array of numbers
+        # as long as there is data in the queue, get it, parse it, and plot it
+        while True:
+            strdata = ""
             try:
-                datapoint = [float(x.strip()) for x in arrdata]
-
-                if len(self.plot_page.plot.trace_names) == len(datapoint):
-                    # This is a good datapoint
-                    # Matches the exact number of cols as the header
-                    self.plot_page.plot.update_data([datapoint])
-                else:
-                    # Ignore it, this is not a valid datapoint
-                    # datapoint could be an empty list
-                    self.log("Not a valid datapoint: '{}'".format(strdata))
+                strdata = self.serial_data_queue.get_nowait()
             except:
-                pass
+                # there is no data in the queue, do nothing
+                return
 
-    def __on_usb_device_arrival__(self):
-        self.log("Detected New USB Device")
-        self.__refresh_ports__()
-        self.__change_menubar_text_open_close_port__()
+            self.output(strdata)
+            arrdata = strdata.split(",")
 
-    def __on_usb_device_removal__(self):
-        self.log("Detected USB Device Removal")
-        self.__refresh_ports__()
-        self.__change_menubar_text_open_close_port__()
-        if not self.serial_port:
-            self.log("Serial port is now None")
+            # There must be at least 2 columns
+            # Time,Signal_1
+            # Then it is (possibly) a valid timeseries
+            if len(arrdata) < 2:
+                return
+
+            # determine if this line is a header or not
+            # The line must start with `%`
+            is_header = False
+            if strdata.startswith("%"):
+                is_header = True
+
+            if is_header:
+                # an array of strings
+
+                # Clear existing plot and set new header
+                if self.auto_clear_plot_on_header_change:
+                    self.__clear_plot__()
+                    self.plot_page.plot.legend.clear()
+
+                arrdata[0] = arrdata[0][1:]  # remove %
+                self.plot_page.plot.set_header(arrdata)
+            else:
+                # an array of numbers
+                try:
+                    datapoint = [float(x.strip()) for x in arrdata]
+
+                    if len(self.plot_page.plot.trace_names) == len(datapoint):
+                        # This is a good datapoint
+                        # Matches the exact number of cols as the header
+                        self.plot_page.plot.update_data([datapoint])
+                    else:
+                        # Ignore it, this is not a valid datapoint
+                        # datapoint could be an empty list
+                        self.log("Not a valid datapoint: '{}'".format(strdata))
+                except:
+                    pass
 
     def __open_close_port__(self):
         if self.serial_port.is_open:
