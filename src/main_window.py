@@ -401,22 +401,31 @@ class MainWindow(QMainWindow):
                 self.__clear_plot__()
                 self.plot_page.plot.legend.clear()
 
-                # Parse Header
-                # Expected: Time, Foo, Bar, Baz, ...
-                # Note: first line (header) may be optionally prepended with %
-                # Convert to: "Foo","Bar",...
-                header = [h.replace('%', '').strip() for h in next(reader)]
-                header = list(dict.fromkeys(header))
-                self.plot_page.plot.set_header(header)
-
+                header = []
                 dataset = []
                 for row in reader:
-                    time = float(row[0])
-                    signals = [float(x) for x in row[1:]]
-                    data = []
-                    data.append(time)
-                    data.extend(signals)
-                    dataset.append(data)
+                    if not len(header) and len(row) >= 2 and '%' in row[0]:
+                        try:
+                            # Parse Header
+                            # Expected: Time, Foo, Bar, Baz, ...
+                            # Note: first line (header) may be optionally prepended with %
+                            # Convert to: "Foo","Bar",...
+                            header = [h.replace('%', '').strip() for h in row]
+                            header = list(dict.fromkeys(header))
+                            self.plot_page.plot.set_header(header)
+                            dataset = []
+                        except:
+                            pass
+                    elif len(header):
+                        try:
+                            time = float(row[0])
+                            signals = [float(x) for x in row[1:]]
+                            data = []
+                            data.append(time)
+                            data.extend(signals)
+                            dataset.append(data)
+                        except:
+                            pass
                 self.plot_page.plot.update_data(dataset)
                 self.log("Successfully imported from '{}'".format(path))
 
@@ -545,7 +554,7 @@ class MainWindow(QMainWindow):
                     self.__clear_plot__()
                     self.plot_page.plot.legend.clear()
 
-                arrdata[0] = arrdata[0][1:]  # remove %
+                arrdata[0] = arrdata[0].replace('%', '')
                 self.plot_page.plot.set_header(arrdata)
             else:
                 # an array of numbers
