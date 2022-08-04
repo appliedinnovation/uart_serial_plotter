@@ -395,6 +395,8 @@ class MainWindow(QMainWindow):
             self.plot_tab.setToolTip(path)
 
             with open(path, "r") as csvfile:
+                self.output(csvfile.read())
+                csvfile.seek(0, 0) # go back to the beginning
                 reader = csv.reader(csvfile)
 
                 # Clear existing plot and set new header
