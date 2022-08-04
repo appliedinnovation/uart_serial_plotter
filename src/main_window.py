@@ -408,7 +408,7 @@ class MainWindow(QMainWindow):
                         try:
                             # Parse Header
                             # Expected: Time, Foo, Bar, Baz, ...
-                            # Note: first line (header) may be optionally prepended with %
+                            # Note: first line (header) must be prepended with %
                             # Convert to: "Foo","Bar",...
                             header = [h.replace('%', '').strip() for h in row]
                             header = list(dict.fromkeys(header))
