@@ -382,9 +382,9 @@ class MainWindow(QMainWindow):
 
     def __open_raw__(self):
         dialog = QFileDialog()
-        fmt = "csv"
-        dialog.setDefaultSuffix(fmt)
-        dialog.setNameFilters([f"{fmt} (*.{fmt})"])
+        fmts = ["Any Text Files (*.csv *.txt)", "CSV (*csv)", "Text (*txt)"]
+        dialog.setDefaultSuffix(fmts[0])
+        dialog.setNameFilters(fmts)
 
         if dialog.exec_() == QDialog.Accepted:
             path = dialog.selectedFiles()[0]
@@ -433,9 +433,9 @@ class MainWindow(QMainWindow):
 
     def __import_scene__(self):
         dialog = QFileDialog()
-        fmt = "csv"
-        dialog.setDefaultSuffix(fmt)
-        dialog.setNameFilters([f"{fmt} (*.{fmt})"])
+        fmts = ["CSV (*csv)"]
+        dialog.setDefaultSuffix(fmts[0])
+        dialog.setNameFilters(fmts)
 
         if dialog.exec_() == QDialog.Accepted:
             path = dialog.selectedFiles()[0]
