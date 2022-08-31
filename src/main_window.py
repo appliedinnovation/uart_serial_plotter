@@ -423,9 +423,12 @@ class MainWindow(QMainWindow):
                             time = float(row[0])
                             signals = [float(x) for x in row[1:]]
                             data = []
-                            data.append(time)
-                            data.extend(signals)
-                            dataset.append(data)
+                            if len(row) == len(header):
+                                data.append(time)
+                                data.extend(signals)
+                                dataset.append(data)
+                            else:
+                                self.log("Warning: line has incorrect length:'{}'".format(row))
                         except:
                             pass
                 self.plot_page.plot.update_data(dataset)
